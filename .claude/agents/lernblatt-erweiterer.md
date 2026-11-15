@@ -33,8 +33,8 @@ daraus die nötigen Grundlagen, Begriffe, Regeln, Aufgabenformen und Beispiele a
 - `docs/style-guide.md`
 - `docs/markierungen.md`
 - `docs/bild-zuschnitt.md`
-- `_derived/<Fach>/planung/themenliste.md`
-- `_derived/<Fach>/analysen/aufgaben.md`
+- `data/<Fach>/work/planning/themenliste.md`
+- `data/<Fach>/work/analyses/aufgaben.md`
 - der relevante Folienextrakt und Kapitelquelltext
 
 ## Ablauf
@@ -49,7 +49,7 @@ daraus die nötigen Grundlagen, Begriffe, Regeln, Aufgabenformen und Beispiele a
 6. Kennzeichne jede Erweiterung mit `Prüfungs- und Übungserweiterung:`.
 7. Nutze `LernblattHTML.formel()` für Formeln und vermeide Doppelungen mit Crops.
 8. Recherchiere nur bei fachlichen Lücken. Halte Webquellen in
-   `_derived/<Fach>/analysen/erweiterungen_quellen.md` fest und nenne externe Bildquellen
+   `data/<Fach>/work/analyses/erweiterungen_quellen.md` fest und nenne externe Bildquellen
    über `hinweis=`.
 9. Erstelle keine eigene Grafik. Frage bei einer nicht anders lösbaren Grafik zuerst
    den Nutzer.

@@ -21,7 +21,7 @@ description: >-
 
 # Lernblatt-Generator (Stufe 3)
 
-Zweck: aus der **freigegebenen** Themenliste (`_derived/<Fach>/planung/themenliste.md`,
+Zweck: aus der **freigegebenen** Themenliste (`data/<Fach>/work/planning/themenliste.md`,
 Output von `themen-analyse`) und den markierten Erweiterungen aus
 `lernblatt-erweiterung` die Lernblätter als **eine `.html` pro Fach** bauen.
 Läuft immer erst, nachdem Themenliste und Erweiterungen freigegeben sind.
@@ -29,8 +29,7 @@ Läuft immer erst, nachdem Themenliste und Erweiterungen freigegeben sind.
 Layout-Spez: `docs/html-style-guide.md`. Inhaltliche Stil-Spez: `docs/style-guide.md`.
 **Bildausschnitte: `docs/bild-zuschnitt.md` — lies das, bevor du den ersten Crop
 renderst.**
-Kalibrierung aus dem Selbstvergleich: `docs/vergleich-datascience.md`. Ground Truth
-= Vorlesungsfolien; die alten Lernblätter sind nur Stil-Referenz.
+Ground Truth = Vorlesungsfolien; die alten Lernblätter sind nur Stil-Referenz.
 
 ## Stil in einem Satz
 Eine zentrierte, durchgehend scrollbare HTML-Seite: BLAUE fette Themen-Überschrift
@@ -46,7 +45,7 @@ wirklich im Bild steckt. Warum, steht in Schritt 1b.
 ## Ablauf pro Fach
 
 ### 1. Freigegebene Themenliste laden und Modus wählen
-Lies `_derived/<Fach>/planung/themenliste.md` und die vorbereiteten Erweiterungen aus
+Lies `data/<Fach>/work/planning/themenliste.md` und die vorbereiteten Erweiterungen aus
 `lernblatt-erweiterung`. Arbeite **kapitelweise** (eine Vorlesung je Schritt im
 Context) — das hält den Token-Verbrauch niedrig und die Struktur folgt
 der Vorlesung.
@@ -62,7 +61,7 @@ steht in der Folien-Spalte ein Rechteck (`03 p12 (Kasten 72,200–300,320)`), re
 genau das statt der ganzen Folie. Übungs- und Klausurmaterial wird als Text,
 Beispiel oder annotierte Aufgabe ergänzt, nicht durch eine unmarkierte Folie.
 
-**Prüf, ob `_derived/<Fach>/build/build_lernblatt.py` schon existiert.**
+**Prüf, ob `data/<Fach>/work/build/build_lernblatt.py` schon existiert.**
 
 | Fall | Modus |
 |---|---|
@@ -80,7 +79,7 @@ bei jedem Lauf anders aussehen. Das Build-Skript dagegen ist linear lesbar, der
 Nutzer kann es selbst korrigieren, und ein neuer Lauf erzeugt deterministisch
 dieselbe Seite plus die neuen Kapitel.
 
-1. Lies `_derived/<Fach>/build/build_lernblatt.py`. Es zeigt dir, welche Themen schon
+1. Lies `data/<Fach>/work/build/build_lernblatt.py`. Es zeigt dir, welche Themen schon
    drin sind und in welchem Ton sie geschrieben sind — halt dich daran.
 2. Nimm aus der Themenliste die Zeilen mit `Δ = neu` und die, deren Rang gestiegen
    ist. Nur für diese Schritt 2 und 3 laufen lassen (rendern, annotieren). Die
@@ -98,7 +97,7 @@ dieselbe Seite plus die neuen Kapitel.
 
 ### 1b. Ist das Deck markiert? Dann führt die Markierung, nicht der Screenshot
 
-Prüf `_derived/<Fach>/cache/markierungen.md` (erzeugt in Stufe 1 von `annots.py`). Hat das
+Prüf `data/<Fach>/work/cache/markierungen.md` (erzeugt in Stufe 1 von `lernblatt annots`). Hat das
 Deck Markierungen, **lies `docs/markierungen.md`** — dort steht der vollständige
 Vertrag. Kurzfassung mit dem, was du beim Bauen tust:
 
@@ -147,8 +146,8 @@ Animations-Bau-Stufe (`final pN` in
 `slide_titles.txt`, dort auch `*` = Folie mit Grafik). Rendern + croppen in einem
 Aufruf:
 ```bash
-uv run python .claude/skills/lernblatt-generator/scripts/render_crop.py \
-  --pdf "Examples/<Fach>/Vorlesungsfolien/<Deck>.pdf" \
+uv run lernblatt crop \
+  --pdf "data/<Fach>/sources/slides/<Deck>.pdf" \
   --pages 11,19,20 --out "<Ausgabeordner>/bilder" --prefix VLxx
 ```
 Der Crop kommt aus der PDF-Geometrie, nicht aus festen Prozentwerten: Titelband,
@@ -169,13 +168,13 @@ angefangener Satz, keine halbe Legende, kein reiner Text als Bild. Die fünf bel
 Fehlschnitte samt Gegenmaßnahmen stehen in `docs/bild-zuschnitt.md`.
 
 **Zwei Prüfungen, beide Pflicht:**
-- `render_crop.py` meldet beim Rendern `WARN Textblock nur zu 26% drin: '…'`, wenn
+- `lernblatt crop` meldet beim Rendern `WARN Textblock nur zu 26% drin: '…'`, wenn
   das Rechteck einen Textblock durchtrennt. Das ist Geometrie aus dem PDF, keine
   Schätzung — kommt so eine Zeile, ist der Ausschnitt falsch. Rechteck um den
   ganzen Block ziehen und neu rendern.
 - Am Ende einmal über den Ordner:
   ```bash
-  uv run python .claude/skills/lernblatt-generator/scripts/check_crops.py "<Ausgabeordner>/bilder"
+  uv run lernblatt check "<Ausgabeordner>/bilder"
   ```
   Findet leere, winzige und schlitzförmige Bilder in einer Sekunde. Ein Befund
   heißt hinsehen, nicht löschen.
@@ -203,7 +202,7 @@ Flags:
   Auto-Box. **Kalibrierungsknopf** für Sonderfälle (Wasserzeichen, Fußzeile).
 
 Arten bei `--figuren`: `tabelle`, `raster`, `vektor`. Mehr klassifiziert PyMuPDF
-nicht. Abdeckung gemessen: CyberSec 52 % der Folien, DS 1 68 %, POIS 62 %.
+nicht. Abdeckung gemessen: 52 %, 68 % und 62 % der Folien in drei Testkursen.
 
 Steht Inhalt **neben** dem Titel, lässt der sich nicht rechteckig wegschneiden —
 das Skript meldet `ACHTUNG Titel bleibt im Bild` und behält ihn ganz.
@@ -214,7 +213,7 @@ Lösung** — wie im Beispiel-Lernblatt. Lösungswerte aus der Klausur-Zusammenf
 nehmen und **selbst mathematisch prüfen** (Ground Truth). Dann in den Screenshot
 schreiben:
 ```bash
-uv run python .claude/skills/lernblatt-generator/scripts/annotate.py \
+uv run lernblatt annotate \
   --img "<Ausgabeordner>/bilder/VLxx-17.png" \
   --out "<Ausgabeordner>/bilder/VLxx-17_annot.png" \
   --ann '[{"type":"text","x":985,"y":625,"val":"2","color":"red"},
@@ -227,30 +226,29 @@ Stellen zu finden, dann annotieren und das Ergebnis einmal gegenprüfen.
 Nutze `LernblattHTML` statt HTML von Hand — die Klasse kodiert das Layout (Farben,
 Größen, Abstände, A4-Marker, Druck-CSS). Vollständige Spez: `docs/html-style-guide.md`.
 
-Das Build-Skript gehört nach **`_derived/<Fach>/build/build_lernblatt.py`** und bleibt
+Das Build-Skript gehört nach **`data/<Fach>/work/build/build_lernblatt.py`** und bleibt
 dort liegen. Es ist der Quelltext des Lernblatts: nächste Woche wird es ergänzt und
 neu ausgeführt, statt die HTML anzufassen. Gliedere es mit Kommentar-Zeilen je
-Vorlesung (`# --- Deck 07: OpenRefine`), damit die Einfügestelle beim Erweitern
+Vorlesung (`# --- Deck 07: Clustering`), damit die Einfügestelle beim Erweitern
 ohne Suchen zu finden ist.
 
 ```python
 import sys
 
-sys.path.insert(0, ".claude/skills/lernblatt-generator/scripts")
-from lernblatt_html import LernblattHTML
+from lernblatt.sheet.html import LernblattHTML
 
 lb = LernblattHTML("Lernblatt <Fach>", img_dir="<Ausgabeordner>/bilder")
-lb.h_deck("03 LOD2 SPARQL")  # Foliensatz-Trenner
-lb.h_topic("RDF als Grundlage")  # Folientitel 1:1
-lb.kern("RDF beschreibt Daten als Tripel Subjekt – Prädikat – Objekt.")
+lb.h_deck("03 Lineare Regression")  # Foliensatz-Trenner
+lb.h_topic("Kleinste Quadrate")  # Folientitel 1:1
+lb.kern("Die Regressionsgerade minimiert die Summe der quadrierten Residuen.")
 lb.formel("<mrow><mi>x</mi><mo>=</mo><mn>1</mn></mrow>", "x gleich 1")
-lb.sublabel("RDF-Datenmodell:")
-lb.glossar("resource", "alles Benennbare, per URI identifiziert.")
+lb.sublabel("Modellannahmen:")
+lb.glossar("Residuum", "Abstand zwischen Messwert und Vorhersage.")
 lb.bullet("offenes Format (CSV statt Excel).", color="red")
 lb.pic("VL03-11.png", anteil=0.62)  # so breit wie auf der Folie
 lb.tabelle(["Verfahren", "Paradigma"], [["Klassifikation", "überwacht"]])
 lb.akzent("Klausur-Aufgabe: ...")
-lb.save("Examples/<Fach>/Lernblaetter/Lernblatt_<Fach>.html")
+lb.save("data/<Fach>/output/Lernblatt_<Fach>.html")
 ```
 Bau das Skript mit **relativen Pfaden ab Projektwurzel** wie oben, sonst bricht der
 Lauf nächste Woche an einem anderen Arbeitsverzeichnis.
@@ -286,7 +284,7 @@ einem Halbsatz markiert. Details in `docs/style-guide.md`.
 Vor dem Bildcheck muss jedes Klausur- und Übungsthema einen Einbauort im
 Build-Skript haben. Prüfe dafür die Abdeckungsliste mit Quelle, Thema, Foliensatz
 oder Ergänzungsblock, Aufgabentyp und Beispiel oder Lösung. Erst danach
-`check_crops.py` über den Bilder-Ordner laufen lassen und das HTML im Browser öffnen
+`lernblatt check` über den Bilder-Ordner laufen lassen und das HTML im Browser öffnen
 oder als headless-Screenshot prüfen. Prüfen:
 - beginnt jeder Topic-Block mit einer Zusammenfassung?
 - ist der Folientext vollständig, sind Labels und Tabellenbegriffe fett und sind
@@ -308,15 +306,16 @@ wird nicht angeboten.
   nach `bilder/`; die Datei bleibt bei ~13 KB statt 631 KB. `save(bundle=True)`
   erzeugt die Ein-Datei-Fassung zum Verschicken — die dann auch niemand mehr öffnet
   außer einem Browser.
-- **Rendere nach `<Ausgabeordner>/bilder/`**, nicht nach `_derived`. Die Bilder
+- **Rendere nach `<Ausgabeordner>/bilder/`** (`data/<Fach>/output/bilder/`), nicht
+  nach `work/`. Die Bilder
   gehören zum Artefakt und ziehen mit ihm um.
 - Für die Sichtprüfung reicht ein Screenshot bei reduzierter Größe. Ein
   Vollseiten-PNG eines fünfseitigen Blatts ist ein spürbarer Posten pro Lauf.
 
 ## Toolchain & Gotchas
-- **PyMuPDF** für Text, Geometrie und Rendern — `slides.py` kapselt das. `pillow`
-  für `annotate.py` und `check_crops.py`. Selbsttests: `slides.py --selftest`,
-  `check_crops.py --selftest`, `lernblatt_html.py`.
+- **PyMuPDF** für Text, Geometrie und Rendern — `lernblatt.sheet.slides` kapselt das. `pillow`
+  für `lernblatt annotate` und `lernblatt check`. Selbsttests: `uv run lernblatt
+  selftest` (alle) oder einzeln `uv run lernblatt check --selftest`.
 - **PowerShell-Variablen überleben nicht** zwischen Aufrufen → je Skript alles in
   einem Lauf.
 - **Formeln:** Als HTML-Text mit `formel()` in nativem MathML setzen. Gehört die
@@ -328,5 +327,5 @@ wird nicht angeboten.
   `.html` lässt sich daraus jederzeit neu erzeugen, umgekehrt nicht. Schreib die
   benutzten `--rect`-Werte als Kommentar hinein, sonst weiß nächste Woche niemand
   mehr, welcher Ausschnitt gerendert wurde.
-- Referenz-Output mit Markierungen: `Vorlesungen/GenAi/Lernblaetter/
-  Lernblatt_GenAi.html` + `_derived/GenAi/build/build_lernblatt.py`.
+- Referenz-Output eines Fachs: `data/<Fach>/output/` +
+  `data/<Fach>/work/build/build_lernblatt.py`.

@@ -2,7 +2,7 @@
 name = "lernblatt-gen"
 version = "0.1.0"
 description = "GenAI-Pipeline: quellengebundene Lernblätter aus Vorlesungsfolien, Übungen und Klausuren"
-readme = "AGENTS.md"
+readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     # Text-Erstpass und Folientitel (Rust-Parser, https://github.com/firecrawl/pdf-inspector)
@@ -17,17 +17,32 @@ dependencies = [
     "pillow==13.0.0",
 ]
 
-[dependency-groups]
-dev = ["ruff==0.17.5"]
+[project.scripts]
+lernblatt = "lernblatt.cli:main"
 
-[tool.uv]
-# Skript-Sammlung, kein installierbares Paket.
-package = false
+[build-system]
+requires = ["uv_build>=0.13,<0.14"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "lernblatt"
+
+[dependency-groups]
+dev = ["ruff==0.17.5", "pytest==9.2.0"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.pyright]
+# Editor nutzt die uv-Umgebung statt des globalen Python.
+venvPath = "."
+venv = ".venv"
 
 [tool.ruff]
 target-version = "py312"
 line-length = 100
-extend-exclude = ["tools", "Scratchpad", "Vorlesungen", "Examples", "_derived"]
+src = ["src", "tests"]
+extend-exclude = ["tools", "data", "scratch"]
 
 [tool.ruff.lint]
 # E9: Syntaxfehler, F: Pyflakes (undefinierte Namen, ungenutzte Importe),

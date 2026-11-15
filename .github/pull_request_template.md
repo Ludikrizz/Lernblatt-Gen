@@ -1,9 +1,9 @@
 ## Was ändert sich?
 
-<!-- 1 bis 3 Sätze. Welcher Skill, Agent oder welches Skript? -->
+<!-- 1 bis 3 Sätze. Welches Modul, welcher Befehl, Skill oder Agent? -->
 
 ## Checkliste
 
-- [ ] Änderungen an `.claude/` sind nach `.pi/` gespiegelt (und umgekehrt).
-- [ ] Kein Kursmaterial, keine Lernblätter, kein `_derived/`-Inhalt im Commit.
-- [ ] Selbsttests laufen lokal (siehe `AGENTS.md`, Abschnitt Prüfungen).
+- [ ] Kein Kursmaterial, keine Lernblätter, kein Inhalt aus `data/` im Commit.
+- [ ] Änderungen an `.claude/agents/` sind nach `.pi/agents/` kopiert (und umgekehrt).
+- [ ] `uv run ruff format .`, `uv run ruff check .` und `uv run pytest` laufen lokal.

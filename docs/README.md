@@ -4,7 +4,7 @@ Projekt: automatische Lernblatt-Generierung pro Studienfach aus Vorlesungsfolien
 Übungen und Klausuren, im Stil der eigenen Beispiel-Lernblätter.
 
 - [style-guide.md](style-guide.md) — fachunabhängige **inhaltliche** Stil-Spez (aus
-  3 Beispiel-Lernblättern: CyberSec, Datascience 1, POIS).
+  3 eigenen Beispiel-Lernblättern).
 - [html-style-guide.md](html-style-guide.md) — **HTML-Layout** der Ausgabe (eine
   scrollbare Datei pro Fach, zentriert, A4-Marker, Druck-CSS) + Code-Snippets.
 - [skill-design.md](skill-design.md) — festgelegte Entscheidungen für die drei

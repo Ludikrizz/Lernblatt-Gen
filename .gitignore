@@ -1,24 +1,16 @@
-# --- Kursmaterial und generierte Ausgaben -----------------------------------
-# Folien, Übungen, Klausuren und fertige Lernblätter sind urheberrechtlich
-# geschützt oder reproduzierbar. Nur die leere Ordnerstruktur bleibt im Repo.
-Vorlesungen/*
-!Vorlesungen/.gitkeep
-Examples/*
-!Examples/.gitkeep
-
-# --- Arbeitsdaten pro Fach --------------------------------------------------
-# planung/, analysen/, build/ und cache/ entstehen pro Fach neu.
-# Nur die Strukturbeschreibung bleibt.
-_derived/*
-!_derived/README.md
+# --- Kursdaten pro Fach ------------------------------------------------------
+# Folien, Übungen, Klausuren, Arbeitsdaten und fertige Lernblätter liegen unter
+# data/<Fach>/. Sie sind urheberrechtlich geschützt oder reproduzierbar.
+# Nur die Strukturbeschreibung bleibt im Repo.
+data/*
+!data/README.md
 
 # --- Eval-Arbeitsordner (skill-creator), generiert --------------------------
-.pi/agents/skills/*-workspace/
 .claude/skills/*-workspace/
 
 # --- Temporäre Skripte und Renderprüfungen ----------------------------------
-Scratchpad/*
-!Scratchpad/.gitkeep
+scratch/*
+!scratch/.gitkeep
 
 # --- Python -------------------------------------------------------------------
 __pycache__/

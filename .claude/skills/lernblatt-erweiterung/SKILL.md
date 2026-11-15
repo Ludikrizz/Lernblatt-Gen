@@ -26,9 +26,9 @@ Folientext.
 
 Lies:
 
-1. `_derived/<Fach>/planung/themenliste.md`, besonders `Erweiterung: ja`, Aufgabentyp,
+1. `data/<Fach>/work/planning/themenliste.md`, besonders `Erweiterung: ja`, Aufgabentyp,
    Einbauort und Quellen.
-2. `_derived/<Fach>/analysen/aufgaben.md` oder die entsprechende Aufgabenliste.
+2. `data/<Fach>/work/analyses/aufgaben.md` oder die entsprechende Aufgabenliste.
 3. Den vollständigen relevanten Folienextrakt und den bestehenden Kapitelquelltext.
 4. Die zugehörigen Übungs- und Klausuraufgaben mit Lösungen.
 5. `docs/style-guide.md`, `docs/markierungen.md` und `docs/bild-zuschnitt.md`.
@@ -78,7 +78,7 @@ Lernblatt.
 
 Recherchiere nur, wenn die Folien und Kursmaterialien eine Erklärung nicht tragen
 oder eine Grafik das Verständnis deutlich verbessert. Nutze dafür eine nennbare,
-verlässliche Quelle und halte sie in `_derived/<Fach>/analysen/erweiterungen_quellen.md` fest.
+verlässliche Quelle und halte sie in `data/<Fach>/work/analyses/erweiterungen_quellen.md` fest.
 Externe Grafiken erhalten `pic(hinweis="Quelle: ...")`. Erstelle keine eigene SVG,
 Skizze oder Grafik. Bei einer gewünschten Grafik prüfe zuerst passende Folien-Crops,
 dann eine externe Quelle. Bleibt nur eine eigene Zeichnung, frage den Nutzer.

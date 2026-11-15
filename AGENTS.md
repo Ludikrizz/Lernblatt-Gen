@@ -9,30 +9,26 @@ Truth. Eigene Beispiel-Lernblätter liefern nur den visuellen und sprachlichen S
 ## Verzeichnisstruktur
 
 ```text
-Examples/<Fach>/
-  Vorlesungsfolien/       Folien-PDFs
-  Uebungen/               Übungen und Lösungen
-  Klausuren/              Alt- und Probeklausuren
-  Syllabus.txt            Kursüberblick
-  Lernblaetter/           generierte HTML-Ausgaben
-
-Vorlesungen/<Fach>/       laufender Kurs mit derselben möglichen Unterstruktur
-_derived/<Fach>/
-  planung/                manuelle Begriffe und Nutzerfreigaben
-  analysen/               dauerhafte Analyseergebnisse
-  build/                  reproduzierbare Generatorquellen und Kapitel
-  cache/                  automatisch erzeugte Extrakte, Graphen und Renderprüfungen
-
-.claude/skills/           Projekt-Skills und Generator-Skripte
-.pi/agents/               Laufzeitspiegelung der Projekt-Agenten
-Scratchpad/               temporäre Skripte und Renderprüfungen
+src/lernblatt/            Python-Paket mit der Kommandozeile `lernblatt`
+  cli.py                  Einstieg: uv run lernblatt <befehl>
+  paths.py                alle Pfade unter data/<Fach>/
+  analysis/               extract, annotations, graph (Themenanalyse)
+  sheet/                  slides, render, check, annotate, html (Lernblatt-Bau)
+tests/                    pytest: Selbsttests und CLI
+scripts/moodle/           PowerShell-Skripte für den Moodle-Download
+data/<Fach>/              Kursdaten, nicht im Git (Layout: data/README.md)
+  sources/                slides/, exercises/, exams/
+  work/                   planning/, analyses/, build/, cache/
+  output/                 fertige Lernblätter, Bilder unter output/bilder/
 docs/                     Design-, Inhalts- und Prozessdokumentation
+.claude/skills/           Projekt-Skills (Anleitungen für Agenten)
+.claude/agents/           Projekt-Agenten, gespiegelt nach .pi/agents/
+scratch/                  temporäre Skripte und Renderprüfungen, nicht im Git
 tools/pdf-inspector/      Quelltext-Referenz des Parsers, v1.26.0 (installiert wird das PyPI-Paket)
 ```
 
-`Examples/<Fach>/` ist die bevorzugte Struktur für sortierte Quellen. Während ein
-Kurs läuft, kann `Vorlesungen/<Fach>/` verwendet werden. Die Pfadlogik in
-`.claude/skills/themen-analyse/scripts/pfade.py` unterstützt beide Varianten.
+Die Pfadlogik steht nur in `src/lernblatt/paths.py`. Liegen unter
+`data/<Fach>/sources/` nur PDFs ohne Unterordner, gelten sie als Folien.
 
 ## Einrichtung
 
@@ -41,9 +37,9 @@ Das Projekt nutzt [uv](https://docs.astral.sh/uv/). Abhängigkeiten stehen in
 `.python-version`.
 
 ```bash
-uv sync                 # legt .venv an und installiert alles
-uv run python <skript>  # führt ein Skript in dieser Umgebung aus
-uv add <paket>          # neue Abhängigkeit, aktualisiert uv.lock
+uv sync                    # legt .venv an, installiert alles und das Paket lernblatt
+uv run lernblatt --help    # zeigt alle Befehle
+uv add <paket>             # neue Abhängigkeit, aktualisiert uv.lock
 ```
 
 - `pdf-inspector` (PyPI, Quelle: https://github.com/firecrawl/pdf-inspector)
@@ -53,11 +49,11 @@ uv add <paket>          # neue Abhängigkeit, aktualisiert uv.lock
   für `eng` (und möglichst `deu`) unter `TESSDATA_PREFIX`,
   `%LOCALAPPDATA%/Tesseract-OCR/tessdata` oder
   `%PROGRAMFILES%/Tesseract-OCR/tessdata` liegen. Sonst nutzt er RapidOCR.
-- Die Skripte finden die Projektwurzel selbst über diese `AGENTS.md`.
-  `LERNBLATT_ROOT` überschreibt sie, wenn das Kursmaterial woanders liegt.
+- Das Paket findet die Projektwurzel selbst über `pyproject.toml` und diese
+  `AGENTS.md`. `LERNBLATT_ROOT` überschreibt sie, wenn die Kursdaten woanders liegen.
 
-`_derived/<Fach>/cache/` ist wegwerfbar. `planung/`, `analysen/` und `build/`
-bleiben erhalten. Das genaue Layout steht in `_derived/README.md`.
+`data/<Fach>/work/cache/` ist wegwerfbar. `planning/`, `analyses/` und `build/`
+bleiben erhalten.
 
 ## Arbeitsablauf
 
@@ -72,37 +68,73 @@ Arbeite in drei Stufen:
 Aufgaben werden nicht wörtlich kopiert. Erweiterungen erscheinen nur bei aktiver
 Freigabe und am passenden Ende eines Foliensatzes.
 
-## Builds
-
-Alle Befehle laufen aus der Projektwurzel, dem Ordner mit dieser `AGENTS.md`. Ersetze `<Fach>` durch
-den Ordnernamen des Fachs:
+## Themenanalyse
 
 ```bash
-uv run python "_derived/<Fach>/build/build_lernblatt.py"
-uv run python "_derived/<Fach>/build/build_quicknotes.py"
+uv run lernblatt extract "<Fach>"          # PDFs -> work/cache/text/, slide_titles.txt
+uv run lernblatt annots "<Fach>"           # Markierungen -> work/cache/markierungen.md
+uv run lernblatt graph "<Fach>" --init     # legt work/planning/terms.txt an
+uv run lernblatt graph "<Fach>"            # Themengraph und Budget -> work/cache/graph.md
 ```
 
-`build/build_quicknotes.py` ist optional und wird nur ausgeführt, wenn die Datei existiert.
+Automatische Analysedaten stehen unter `work/cache/`. Dauerhafte Berichte stehen
+unter `work/analyses/`, und Nutzerfreigaben stehen unter `work/planning/`. Große
+Folienextrakte nur kapitelweise lesen. Übungs- und Klausurmaterial vollständig lesen,
+wenn es klein genug ist. Eine freigegebene `work/planning/themenliste.md` ist nicht
+still zu überschreiben.
+
+## Builds
+
+Alle Befehle laufen aus der Projektwurzel, dem Ordner mit dieser `AGENTS.md`.
+Ersetze `<Fach>` durch den Ordnernamen unter `data/`:
+
+```bash
+uv run python "data/<Fach>/work/build/build_lernblatt.py"
+uv run python "data/<Fach>/work/build/build_quicknotes.py"
+```
+
+`build_quicknotes.py` ist optional und wird nur ausgeführt, wenn die Datei existiert.
+Ein Build-Skript importiert den HTML-Builder aus dem Paket und schreibt nach `output/`:
+
+```python
+from lernblatt.paths import ausgabe
+from lernblatt.sheet.html import LernblattHTML
+
+lb = LernblattHTML("<Fach>", img_dir=ausgabe("<Fach>", "bilder"))
+lb.h_deck("01 Einführung")
+lb.pic("VL01-3.png", anteil=0.58)
+lb.save(ausgabe("<Fach>", "Lernblatt_<Fach>.html"))
+```
+
 Die Builds schreiben die HTML-Dateien vollständig neu. Bilder liegen neben dem
-HTML unter `Lernblaetter/bilder/` und werden relativ verlinkt, nicht als Base64
+HTML unter `output/bilder/` und werden relativ verlinkt, nicht als Base64
 eingebettet.
 
-## Prüfungen
+## Crop-Workflow
 
-Es gibt keinen `pytest`-Lauf. Nutze Ruff und die vorhandenen Selbsttests und
-Artefaktprüfungen:
+1. Die finale Animationsstufe der Folie bestimmen.
+2. Mit `lernblatt crop` nach `output/bilder/` rendern.
+3. Rechteckwarnungen prüfen und jeden Crop allein verständlich machen.
+4. `lernblatt check` über den vollständigen Bilderordner ausführen.
+5. Das HTML neu bauen und im Browser prüfen.
+
+Beispiel mit Platzhaltern:
+
+```bash
+uv run lernblatt crop --pdf "data/<Fach>/sources/slides/<datei>.pdf" \
+  --pages 1,2 --out "data/<Fach>/output/bilder" --prefix VL01
+uv run lernblatt check "data/<Fach>/output/bilder"
+```
+
+## Prüfungen
 
 ```bash
 uv run ruff check .
 uv run ruff format --check .
-uv run python -m py_compile "_derived/<Fach>/build/build_lernblatt.py" "_derived/<Fach>/build/chapters/"*.py
-uv run python .claude/skills/lernblatt-generator/scripts/lernblatt_html.py --selftest
-uv run python .claude/skills/lernblatt-generator/scripts/slides.py --selftest
-uv run python .claude/skills/lernblatt-generator/scripts/check_crops.py --selftest
-uv run python .claude/skills/themen-analyse/scripts/extract_and_map.py --selftest
-uv run python .claude/skills/themen-analyse/scripts/annots.py --selftest
-uv run python .claude/skills/themen-analyse/scripts/graph.py --selftest
-uv run python .claude/skills/lernblatt-generator/scripts/check_crops.py "Vorlesungen/<Fach>/Lernblaetter/bilder"
+uv run pytest                  # Selbsttests aller Module und CLI-Tests
+uv run lernblatt selftest      # dieselben Selbsttests ohne pytest
+uv run lernblatt <befehl> --selftest   # ein Modul einzeln
+uv run python -m py_compile "data/<Fach>/work/build/build_lernblatt.py"
 ```
 
 Nach jedem Build zusätzlich prüfen:
@@ -119,24 +151,8 @@ Für eine Browserprüfung kann die Projektwurzel temporär dienen:
 uv run python -m http.server 8765 --bind 127.0.0.1
 ```
 
-Öffne danach die erzeugte HTML-Datei unter
-`http://127.0.0.1:8765/<Ausgabepfad>`. Beende den Server nach der Prüfung.
-
-## Themenanalyse
-
-Typische Befehle für ein Fach sind:
-
-```bash
-uv run python .claude/skills/themen-analyse/scripts/extract_and_map.py <Fach>
-uv run python .claude/skills/themen-analyse/scripts/annots.py <Fach>
-uv run python .claude/skills/themen-analyse/scripts/graph.py <Fach>
-```
-
-Automatische Analysedaten stehen unter `_derived/<Fach>/cache/`. Dauerhafte Berichte
-stehen unter `analysen/`, und Nutzerfreigaben stehen unter `planung/`. Große
-Folienextrakte nur kapitelweise lesen. Übungs- und Klausurmaterial vollständig lesen,
-wenn es klein genug ist. Eine freigegebene `planung/themenliste.md` ist nicht still
-zu überschreiben.
+Öffne danach `http://127.0.0.1:8765/data/<Fach>/output/<datei>.html`. Beende den
+Server nach der Prüfung.
 
 ## Inhalts- und Stilregeln
 
@@ -157,22 +173,6 @@ zu überschreiben.
 - Das Lernblatt bietet nur den A4-Druckdialog, keine Endlos-PDF-Seite.
 - Quicknotes bleiben ein separates, knappes HTML und ersetzen kein normales Lernblatt.
 
-## Crop-Workflow
-
-1. Die finale Animationsstufe der Folie bestimmen.
-2. Mit `render_crop.py` nach `<Ausgabe>/bilder/` rendern.
-3. Rechteckwarnungen prüfen und jeden Crop allein verständlich machen.
-4. `check_crops.py` über den vollständigen Bilderordner ausführen.
-5. Das HTML neu bauen und im Browser prüfen.
-
-Beispiel mit Platzhaltern:
-
-```bash
-uv run python .claude/skills/lernblatt-generator/scripts/render_crop.py \
-  --pdf "Vorlesungen/<Fach>/Vorlesungsfolien/<datei>.pdf" \
-  --pages 1,2 --out "Vorlesungen/<Fach>/Lernblaetter/bilder" --prefix VL01
-```
-
 ## Zusammenarbeit
 
 `main` ist geschützt. Direkte Pushes sind gesperrt.
@@ -184,8 +184,9 @@ uv run python .claude/skills/lernblatt-generator/scripts/render_crop.py \
 5. Merge mit „Squash and merge“.
 
 Der CI-Check prüft: kein Kursmaterial im Commit, keine festen Projektpfade,
-Spiegelung `.claude/` und `.pi/`, Ruff (Lint und Format), Kompilieren und die
-Selbsttests. Vor dem Push lokal: `uv run ruff format .` und `uv run ruff check --fix .`.
+Spiegelung `.claude/agents/` und `.pi/agents/`, Ruff (Lint und Format), `pytest`
+und `lernblatt selftest`. Vor dem Push lokal: `uv run ruff format .` und
+`uv run ruff check --fix .`.
 
 ## Änderungen
 
@@ -194,5 +195,7 @@ Bildpfade ein. Lies vor Inhaltsänderungen `docs/style-guide.md`,
 `docs/html-style-guide.md` und `docs/markierungen.md`. Lies bei Crop-Änderungen
 zusätzlich `docs/bild-zuschnitt.md`.
 
-Bei Änderungen an einem Skill oder Laufzeit-Agenten die entsprechende Spiegelung
-unter `.pi/` beziehungsweise `.claude/` synchron halten.
+Neuer Code gehört in `src/lernblatt/`. Ein neuer Befehl bekommt einen Eintrag in
+`BEFEHLE` in `src/lernblatt/cli.py`, ein Modul mit `_selftest()` einen Eintrag in
+`SELBSTTESTS`. Kopiere eine geänderte Datei aus `.claude/agents/` nach `.pi/agents/`.
+Pi liest die Skills direkt aus `.claude/skills/`.

@@ -28,14 +28,14 @@ Du arbeitest in Stufe 3. Lies `.claude/skills/lernblatt-generator/SKILL.md`,
 
 ## Ablauf
 
-1. Lies `_derived/<Fach>/planung/themenliste.md`, die freigegebenen Erweiterungen und baue
+1. Lies `data/<Fach>/work/planning/themenliste.md`, die freigegebenen Erweiterungen und baue
    nur `rein`-Themen plus die markierten Erweiterungsabschnitte. Quicknotes kommen
    in das separate Quicknotes-Lernblatt.
-2. Prüfe `_derived/<Fach>/build/build_lernblatt.py`. Ergänze es bei bestehendem Blatt,
+2. Prüfe `data/<Fach>/work/build/build_lernblatt.py`. Ergänze es bei bestehendem Blatt,
    statt HTML zu parsen oder das Skript zu ersetzen.
 3. Arbeite deckweise. Wähle finale Animationsstufen und rendere echte Folienbilder
-   mit `render_crop.py`. Nutze bei Kästen das `mit Beschriftung`-Rechteck, wenn
-   `annots.py` es ausgibt, sonst `Crop`. Rendere ohne PDF-Annotationsebene und setze
+   mit `lernblatt crop`. Nutze bei Kästen das `mit Beschriftung`-Rechteck, wenn
+   `lernblatt annots` es ausgibt, sonst `Crop`. Rendere ohne PDF-Annotationsebene und setze
    `pic(anteil=...)` exakt auf Crop-Breite durch Folienbreite.
 4. Beginne jeden `h_topic`-Block mit einer kurzen `kern`-Zusammenfassung.
    Übernimm den danach nötigen Folientext vollständig und 1:1. Kürze oder

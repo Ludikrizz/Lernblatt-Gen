@@ -1,7 +1,7 @@
 # Style Guide — Lernblätter
 
 Fachunabhängige Spezifikation des **inhaltlichen** Stils. Basis: die drei eigenen
-Beispiel-Lernblätter (CyberSec 42 S., Datascience 1 30 S., POIS 35 S.). Der
+Beispiel-Lernblätter (42 S., 30 S. und 35 S.). Der
 Generator lädt diese Datei statt der Beispiel-PDFs. Layout: `html-style-guide.md`.
 Markierte Folien: `markierungen.md`. Bildausschnitte: `bild-zuschnitt.md`.
 
@@ -21,7 +21,7 @@ ungeordneter Fließtext.
 Bei markierten Decks gilt `markierungen.md`, nicht Abschnitt 5 hier.
 
 ## 2. Dichte
-Gemessen: POIS 1/8, DS 1/14, CyberSec 1/16 der bereinigten Folien. Richtwert 1/8.
+Gemessen: 1/8, 1/14 und 1/16 der bereinigten Folien in drei Testkursen. Richtwert 1/8.
 Spätere Kapitel dürfen textdichter sein als frühe.
 
 ## 3. Überschriften
@@ -117,7 +117,7 @@ Drei Bedingungen:
 - **Finale Bau-Stufe** einer Animations-Folge.
 - **Größe wie auf der Folie.** Ein Bild, das ein Drittel der Folienbreite einnahm,
   bekommt auch im Blatt ein Drittel. Auf volle Spaltenbreite aufgeblasen wirkt eine
-  Randgrafik wichtiger als sie ist und frisst eine halbe Seite. `render_crop.py`
+  Randgrafik wichtiger als sie ist und frisst eine halbe Seite. `lernblatt crop`
   gibt den Breitenanteil aus, `pic(anteil=…)` nimmt ihn.
 - **Text, der zur Grafik gehört, bleibt drin** und wird nicht zusätzlich
   abgeschrieben. Beschriftungen neben den Bildstufen, die Anfragezeile über einem
