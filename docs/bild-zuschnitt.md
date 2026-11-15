@@ -32,7 +32,7 @@ allein.
 
 ### Die Bedingung ist gerechnet, nicht geschätzt
 
-Du musst nicht abwägen, ob ein Text „dazugehört". `annots.py` entscheidet es an der
+Du musst nicht abwägen, ob ein Text „dazugehört". `lernblatt annots` entscheidet es an der
 Geometrie und gibt das fertige Rechteck aus:
 
 > **Ein Textblock gehört zur Grafik, wenn er im Kasten liegt und sich mit der
@@ -43,7 +43,7 @@ Bildstufe, die Achsenbeschriftung neben der Kurve, die Legende neben dem Diagram
 Ein Absatz **über oder unter** der Grafik überlappt nicht, bleibt draußen und wird
 abgeschrieben. Der Folientitel fällt aus demselben Grund heraus.
 
-**Beleg — `GenAi/02GrundbegriffeML.pdf`, S. 14 (k-means):**
+**Beleg aus einem Testkurs (k-means-Folie):**
 
 | Element | y-Bereich | Überlappt die Bildspalte? |
 |---|---|---|
@@ -52,7 +52,7 @@ abgeschrieben. Der Folientitel fällt aus demselben Grund heraus.
 | Folientitel | 42–75 | nein → bleibt draußen |
 | Fußzeile | 522–537 | liegt außerhalb des Kastens |
 
-`annots.py` meldet daraus:
+`lernblatt annots` meldet daraus:
 
 ```
 Kasten (rot) · Rechteck (19, 47, 586, 492) · Grafik: 2,
@@ -77,12 +77,12 @@ Bild, wie in der ersten Fassung von `VL02-14.png` und `VL02-13.png` geschehen.
 
 ## Sechs Zuschnitte, die nicht gehen
 
-Alle sechs sind echte Fälle aus `Vorlesungen/GenAi/Lernblaetter/bilder/`.
+Alle sechs sind echte Fälle aus dem Bilderordner eines Testkurses.
 
 ### 1. Nur der Rahmen der Markierung
 `VL05-05_encoder-decoder.png`, 485 × 24 px: ein roter Strich auf Weiß. Der Crop lag
 auf der Kante der Bounding Box statt auf ihrem Inhalt.
-→ `check_crops.py` meldet das als `LEER`. `annots.py` hält seit dem Fund 3 pt
+→ `lernblatt check` meldet das als `LEER`. `lernblatt annots` hält seit dem Fund 3 pt
 Abstand zur Kastenkante, damit der Rahmenstrich gar nicht erst mitkommt.
 
 ### 2. Grafik ohne ihre Beschriftung
@@ -113,7 +113,7 @@ durchsuchbar und braucht mehr Platz. Siehe `markierungen.md`, Regel 1.
 
 ## Wie du es richtig machst
 
-1. **Nimm `mit Beschriftung`, wenn `annots.py` es ausgibt** — das ist die
+1. **Nimm `mit Beschriftung`, wenn `lernblatt annots` es ausgibt** — das ist die
    Grafik plus den Text auf ihrer Höhe, 3 pt innerhalb des Rahmens. Fehlt die
    Angabe, steht die Grafik für sich: dann `Crop`.
 2. **Rande auf Blockgrenzen aus.** `page.get_text("blocks")` liefert die
@@ -121,7 +121,7 @@ durchsuchbar und braucht mehr Platz. Siehe `markierungen.md`, Regel 1.
    enthalten oder ganz auslassen.
 3. **Rendern und die Warnung lesen:**
    ```bash
-   uv run python .claude/skills/lernblatt-generator/scripts/render_crop.py \
+   uv run lernblatt crop \
      --pdf "<Deck>.pdf" --pages 10 --rect 30,100,700,280 \
      --out "<Ausgabeordner>/bilder" --prefix VL05
    ```
@@ -135,10 +135,10 @@ durchsuchbar und braucht mehr Platz. Siehe `markierungen.md`, Regel 1.
    Ausschnitt falsch — zieh das Rechteck bis um den Block herum und rendere neu.
 4. **Am Ende den Ordner prüfen:**
    ```bash
-   uv run python .claude/skills/lernblatt-generator/scripts/check_crops.py "<Ausgabeordner>/bilder"
+   uv run lernblatt check "<Ausgabeordner>/bilder"
    ```
    Findet `LEER`, `WINZIG` und `SCHLITZ` in einer Sekunde, ohne dass ein Modell
-   die Bilder ansehen muss. Auf den 84 Bildern des GenAi-Blatts meldet es 9 — und
+   die Bilder ansehen muss. Auf den 84 Bildern eines Testkurs-Blatts meldet es 9 — und
    das sind genau die Fehlerarten oben.
 
 ## Grenzwerte und warum sie so stehen
@@ -157,9 +157,9 @@ hinsehen, nicht löschen; kein Befund heißt nicht, dass der Ausschnitt gut ist.
 
 ## Kanten-Prüfung im Bild: nur mit `--streng`
 
-`check_crops.py --streng` meldet zusätzlich Tinte, die in eine Bildkante läuft. Das
+`lernblatt check --streng` meldet zusätzlich Tinte, die in eine Bildkante läuft. Das
 ist standardmäßig aus, weil es im Normalbetrieb ständig feuert: mit `--pad 0` sitzt
 der Crop exakt am markierten Rechteck, und Inhalt berührt die Kante dann
-selbstverständlich. Auf den 84 GenAi-Bildern meldete die Prüfung 53 Treffer und war
+selbstverständlich. Auf den 84 Bildern eines Testkurses meldete die Prüfung 53 Treffer und war
 damit wertlos. Ob wirklich ein Satz zerschnitten wurde, weiß nur das PDF — dafür
-gibt es die Warnung in `render_crop.py`.
+gibt es die Warnung in `lernblatt crop`.

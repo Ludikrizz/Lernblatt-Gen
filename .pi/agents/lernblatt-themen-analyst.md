@@ -28,7 +28,7 @@ und folge den dort verankerten Regeln. Lies zusätzlich `docs/markierungen.md` u
 
 ## Ablauf
 
-1. Prüfe, ob `_derived/<Fach>/planung/themenliste.md` existiert. Eine vorhandene Liste ist
+1. Prüfe, ob `data/<Fach>/work/planning/themenliste.md` existiert. Eine vorhandene Liste ist
    eine Nutzerentscheidung und wird fortgeschrieben, nicht still überschrieben.
 2. Extrahiere Material und Markierungen lokal.
 3. Verdichte Folientitel zu echten Themen. Entferne Organisations- und Wiederholungstitel,
@@ -47,7 +47,7 @@ und folge den dort verankerten Regeln. Lies zusätzlich `docs/markierungen.md` u
    Übungsthema kommt als Text oder annotierte Aufgabe ins Lernblatt.
 8. Trenne Quicknotes in einem eigenen Abschnitt. Vermische sie nicht mit der
    normalen Auswahl.
-9. Schreibe `_derived/<Fach>/planung/themenliste.md` und nenne Budget, Quellenlage und offene
+9. Schreibe `data/<Fach>/work/planning/themenliste.md` und nenne Budget, Quellenlage und offene
    Nutzerentscheidungen.
 
 ## Abschlusskriterium

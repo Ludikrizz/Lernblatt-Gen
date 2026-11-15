@@ -6,7 +6,7 @@ einem Menschen, der in der Vorlesung saß, und nicht aus einer Wortzählung.
 Klausur, Übung und Kopplungs-Graph stehen dahinter.
 
 Gelesen werden sie mit
-`.claude/skills/themen-analyse/scripts/annots.py "<Fach>"` → `_derived/<Fach>/cache/markierungen.md`.
+`uv run lernblatt annots "<Fach>"` → `data/<Fach>/work/cache/markierungen.md`.
 `pdf-inspector` sieht sie **nicht** — sie liegen in der Annotations-Ebene des PDFs,
 nicht im Text.
 
@@ -18,7 +18,7 @@ Beide Skills lesen diese Datei: `themen-analyse` macht daraus Themen und Ränge,
 ### 1. Kasten (Square, Circle, Polygon, Ink) — der Inhalt kommt rein
 
 Was der Kasten umschließt, gehört ins Lernblatt. **Wie** es reinkommt, hängt davon
-ab, was drin ist. `annots.py` sagt es dir mit `Grafik: N`:
+ab, was drin ist. `lernblatt annots` sagt es dir mit `Grafik: N`:
 
 | Im Kasten | Was du tust |
 |---|---|
@@ -31,7 +31,7 @@ ab, was drin ist. `annots.py` sagt es dir mit `Grafik: N`:
 **Die vierte Zeile ist die, die man übersieht — deshalb rechnet das Skript sie
 aus.** `Crop` ist die enge Hülle um die gezeichneten Elemente: richtig, wenn die
 Grafik für sich steht, falsch, wenn Text Teil der Darstellung ist. Für den zweiten
-Fall gibt `annots.py` ein drittes Rechteck aus:
+Fall gibt `lernblatt annots` ein drittes Rechteck aus:
 
 ```
 Kasten (rot) · Rechteck (19, 47, 586, 492) · Grafik: 2,
@@ -43,7 +43,7 @@ jeden Textblock, der im Kasten liegt und sich mit der Grafik **auf derselben Hö
 befindet — also genau die Beschriftungen. Ein Absatz über oder unter der Grafik
 überlappt nicht, bleibt draußen und wird abgeschrieben; der Folientitel ebenso.
 
-Beleg GenAi Deck 02, S. 14 (k-means): Bildspalte y 111–485, die vier Schritt-Texte
+Beleg aus einem Testkurs (k-means-Folie): Bildspalte y 111–485, die vier Schritt-Texte
 y 136–464 → überlappen, kommen mit. Titel y 42–75 → bleibt draußen. Ohne diese
 Regel entstand ein 251 × 780 px schmales Bild mit vier bunten Kästchen ohne
 Aussage.
@@ -90,7 +90,7 @@ die Erklärung als Glossar-Zeile darunter.
 Eigener Text im PDF ist keine Beschreibung, sondern ein **Auftrag an dich**. Lies
 ihn wörtlich und arbeite ihn ab, Punkt für Punkt.
 
-Beispiel aus `GenAi/02GrundbegriffeML.pdf`, S. 4 neben den Lernparadigmen:
+Beispiel aus einem Testkurs, Notiz neben den Lernparadigmen:
 
 > „Klassifikation, Regression, Clustering, Zuordnung zu lernparadigmen und
 > beispiele und Graphiken"
@@ -114,7 +114,7 @@ eine.** Das ist ausdrücklich erlaubt und erwartet. Vorgehen:
    gehört in den Chat.
 
 Verlangt eine Notiz etwas, das in den vorhandenen Folien keine Grundlage hat
-(bei GenAi: `Regression` kommt in Deck 02 nicht vor), **sag es dem Nutzer** statt
+(in einem Testkurs: `Regression` kommt im Deck nicht vor), **sag es dem Nutzer** statt
 es zu erfinden oder zu übergehen. Er entscheidet, ob es aus einem späteren Deck
 nachkommt oder von außen.
 
@@ -145,7 +145,7 @@ verlässlich gestützt werden. Dieses Verfahren holt keine unmarkierte Vorlesung
 zurück, darf aber fehlende prüfungsrelevante Inhalte aus Übungen und Klausuren
 aufnehmen.
 
-`annots.py` listet die unmarkierten Seiten mit Wortzahl und Grafikzahl am Ende
+`lernblatt annots` listet die unmarkierten Seiten mit Wortzahl und Grafikzahl am Ende
 jedes Deck-Abschnitts, damit du siehst, was du als Folieninhalt weglässt.
 
 **Ein Deck ganz ohne Markierungen ist etwas anderes.** Dort ist der Nutzer noch
@@ -158,7 +158,7 @@ Quelle, Thema, passender Foliensatz oder Ergänzungsblock, Einbauort, Aufgabenty
 und Beispiel oder Lösung. Ein Thema in `analysis_pruefung.md` ohne Einbauort ist
 ein Build-Fehler.
 
-## Was `annots.py` liefert
+## Was `lernblatt annots` liefert
 
 Je Markierung: Seite, Rolle (Kasten/Textmarker/Notiz), Farbe, Rechteck, der Text im
 Wortlaut, die Zahl der Grafik-Elemente und das `Crop`-Rechteck um genau diese
@@ -166,7 +166,7 @@ Grafik.
 
 Zwei Dinge, die das Skript für dich löst und die du nicht nachprüfen musst:
 - **Master-Elemente sind rausgerechnet.** Fußzeile, Logo und Titelstrich sind auf
-  jeder Folie dieselben Vektorpfade (bei GenAi rund 72 pro Seite). Ohne diesen
+  jeder Folie dieselben Vektorpfade (in einem Testkurs rund 72 pro Seite). Ohne diesen
   Filter hätte jeder Kasten „Grafik" gemeldet.
 - **Der Kastenrahmen zählt sich nicht selbst.** Er ist auch nur ein Vektorpfad.
 

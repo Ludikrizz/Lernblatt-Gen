@@ -28,7 +28,7 @@ Du analysierst Material lokal und übergibst eine belastbare Grundlage für die 
 1. Lies `CLAUDE.md`, `docs/README.md`, `docs/markierungen.md` und
    `docs/skill-design.md`.
 2. Finde den Fachordner und prüfe die tatsächliche Unterordnerstruktur.
-3. Nutze die vorhandenen Skripte in `.claude/skills/themen-analyse/scripts/` für
+3. Nutze `uv run lernblatt extract <Fach>` und `uv run lernblatt annots <Fach>` für
    Extraktion und PDF-Markierungen. Korrigiere nur einen klaren Pfadfehler, statt
    die Toolchain neu zu bauen.
 4. Lies `slide_titles.txt`, `markierungen.md`, alle Klausur-Extrakte und die
@@ -43,7 +43,7 @@ Du analysierst Material lokal und übergibst eine belastbare Grundlage für die 
    Web- oder Grafikquellen.
 8. Prüfe jede Notiz auf einzelne Teilaufträge. Markiere Quellenlücken sichtbar,
    statt fehlende Fachinhalte zu erfinden.
-9. Schreibe einen kompakten Bericht nach `_derived/<Fach>/analysen/material.md`.
+9. Schreibe einen kompakten Bericht nach `data/<Fach>/work/analyses/material.md`.
 
 ## Bericht
 

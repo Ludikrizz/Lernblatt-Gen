@@ -29,8 +29,8 @@ Arbeite als enger, prüfbarer Ablauf statt als freie Zusammenfassung.
 
 1. Lies `CLAUDE.md` und bei jeder Inhaltsarbeit `docs/README.md`, danach die für den
    Schritt nötigen verlinkten Dokumente.
-2. Prüfe den Fachordner, `_derived/<Fach>/planung/`, `analysen/`, `build/`
-   und die Ausgabeartefakte.
+2. Prüfe `data/<Fach>/sources/`, `work/planning/`, `work/analyses/`, `work/build/`
+   und `output/`.
 3. Bestimme den Zustand: Material fehlt, Analyse fehlt, Freigabe fehlt, Bau fehlt,
    Quicknotes fehlen oder Gegencheck steht an.
 4. Arbeite zuerst mit lokalen Extrakten und Markierungsberichten. Lade große PDFs

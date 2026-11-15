@@ -1,7 +1,6 @@
 # Skill-Design (festgelegte Entscheidungen)
 
-Ergänzt [style-guide.md](style-guide.md) und
-[vergleich-beispiel2.md](vergleich-beispiel2.md). Die Lernblattpipeline nutzt 3
+Ergänzt [style-guide.md](style-guide.md). Die Lernblattpipeline nutzt 3
 getrennte Skills. Vorlesungsquiz und Probeklausurgenerator laufen unabhängig davon.
 
 ## Warum getrennte Skills
@@ -48,7 +47,7 @@ Zweck: aus der **freigegebenen Themenliste und den freigegebenen Erweiterungen**
 Lernblätter erzeugen.
 
 Ablauf:
-1. Folien der freigegebenen Themen mit `render_crop.py` rendern (finale Bau-Stufe)
+1. Folien der freigegebenen Themen mit `lernblatt crop` rendern (finale Bau-Stufe)
    — Crop auf die echte Inhalts-Box, Titelband und Seitenzahl fallen weg.
 2. Pro Thema: zuerst eine kurze Zusammenfassung, danach vollständiger Folientext
    im Stil ([style-guide.md](style-guide.md)) + 1–2 Screenshots. Text aus einem
@@ -57,10 +56,10 @@ Ablauf:
    Kernaussagen zur Leseführung fett setzen, seltene Merksignale unterstreichen,
    wichtige Tabellenbegriffe fett setzen und Formeln als MathML setzen, wenn sie
    als HTML erscheinen.
-3. Kapitelweise in **eine `.html` pro Fach** bauen (`lernblatt_html.py`),
+3. Kapitelweise in **eine `.html` pro Fach** bauen (`lernblatt.sheet.html`),
    durchgehend scrollbar. Token-sicher: nur eine Vorlesung je Schritt im Context.
 
-## Skill 4: `genai-quiz`
+## Skill 4: `lernblatt-quiz`
 
 Zweck: Vorlesungsdefinitionen und Verständnis mit genau 1 Frage je Runde prüfen.
 Der Skill sucht die Wissensgrenze adaptiv. Eine richtige Antwort erhöht die
@@ -68,23 +67,23 @@ Schwierigkeit deutlich. Eine falsche Antwort löst eine nahe Diagnosefrage aus.
 
 Die Vorlesungsfolien bleiben Ground Truth. Übungen und Klausuren bestimmen nur die
 Priorität. Das vorhandene `questionnaire`-Tool zeigt die Auswahl. Der Agent
-`genai-quiz-autor` liefert bei unklaren Quellen genau 1 geprüften
+`lernblatt-quiz-autor` liefert bei unklaren Quellen genau 1 geprüften
 Frageentwurf, aber führt keinen Nutzerdialog.
 
-## Skill 5: `genai-probeklausur`
+## Skill 5: `lernblatt-probeklausur`
 
-Zweck: aus den Befunden in `analysen/aufgaben.md` eine dynamische Probeklausur und
+Zweck: aus den Befunden in `work/analyses/aufgaben.md` eine dynamische Probeklausur und
 eine getrennte Lösungsdatei als HTML erzeugen. Der Standard nutzt 60 Minuten,
 100 Punkte und 10 Aufgaben. 7 belegte Muster tragen 70 Punkte, und 3
 Erweiterungen tragen 30 Punkte.
 
-Der Agent `genai-probeklausur-autor` arbeitet mit `gpt-5.6-sol` und `xhigh`. Ein kleiner
+Der Agent `lernblatt-probeklausur-autor` arbeitet mit `gpt-5.6-sol` und `xhigh`. Ein kleiner
 Python-Renderer mischt Aufgaben und Multiple-Choice-Positionen reproduzierbar.
 Optionale Web-Erweiterungen nutzen zuerst die lokale SearXNG-Suche und danach die
 lokale Firecrawl-Instanz. Sie bleiben auf Themen aus Folien und Übungen begrenzt.
 
 ## Gemeinsame Festlegungen der Lernblattpipeline
-- **Balance:** screenshot-lastig (POIS-Stil).
+- **Balance:** screenshot-lastig.
 - **Format:** `.html` (eine scrollbare Datei pro Fach, Bilder relativ verlinkt aus
   `bilder/` daneben, druckbar auf A4); 3-Farben-Überschriften, fette Kernaussagen,
   Bullets/farbige Sub-Bullets. Layout: `docs/html-style-guide.md`.
@@ -108,9 +107,9 @@ lokale Firecrawl-Instanz. Sie bleiben auf Themen aus Folien und Übungen begrenz
 - **Rolle der Beispiel-Lernblätter:** reine Stil-Referenz, inhaltlich NICHT
   maßgeblich (können Fehler enthalten). Ground Truth = Vorlesungsfolien.
 
-## Kalibrierungen (aus vergleich-beispiel2.md)
+## Kalibrierungen
 - Screenshots auf relevanten Ausschnitt **zuschneiden**, nicht ganze Folienseite.
-- Prüfungsnahe **Aufzählungen vollständig** ausschreiben (OWASP-10, Malware-Arten).
+- Prüfungsnahe **Aufzählungen vollständig** ausschreiben (z. B. eine vollständige Top-10-Liste).
 - Screenshot-Anteil erhöhen Richtung **1/8-Dichte**.
 - **Farbige Betonungs-Bullets** und **Screenshot-Annotationen** (Markieren,
   „fehlt"-Notiz) unterstützen.
@@ -124,7 +123,7 @@ lokale Firecrawl-Instanz. Sie bleiben auf Themen aus Folien und Übungen begrenz
 - Tesseract mit `deu+eng`: erster OCR-Motor; RapidOCR ist der lokale Ersatz.
 - Das aktive OpenAI-Modell: Inhaltsauswahl, Crop-Entscheidung und Review.
 
-OCR ersetzt keinen guten Erstpass. `extract_and_map.py` ruft sie nur für von
+OCR ersetzt keinen guten Erstpass. `lernblatt extract` ruft sie nur für von
 `pdf-inspector` gemeldete Problemseiten oder für Seiten mit weniger als 30 Wörtern
 und großer Raster- oder Vektorgrafik auf. Das aktive Modell entscheidet danach wie
 bisher über Inhalt, Grafik und Crop.

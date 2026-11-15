@@ -27,8 +27,8 @@ jobs:
       # 1. Kein Kursmaterial und keine generierten Daten im Repo (Urheberrecht).
       - name: Repo-Hygiene
         run: |
-          bad=$(git ls-files | grep -E '^(Vorlesungen|Examples|Scratchpad|_derived)/' \
-                | grep -vE '^(Vorlesungen|Examples|Scratchpad)/\.gitkeep$|^_derived/README\.md$' || true)
+          bad=$(git ls-files | grep -E '^(data|scratch)/' \
+                | grep -vE '^data/README\.md$|^scratch/\.gitkeep$' || true)
           pdfs=$(git ls-files '*.pdf' '*.PDF' | grep -v '^tools/' || true)
           if [ -n "$bad$pdfs" ]; then
             echo "::error::Kursmaterial oder generierte Dateien im Commit:"
@@ -39,19 +39,22 @@ jobs:
       # 2. Keine festen Pfade auf einen einzelnen Rechner.
       - name: Keine lokalen Projektpfade
         run: |
-          if git ls-files '.claude/*' '.pi/*' 'AGENTS.md' 'docs/*' \
+          if git ls-files 'src/*' 'scripts/*' 'tests/*' '.claude/*' '.pi/*' \
+                          'AGENTS.md' 'docs/*' 'data/*' \
              | xargs grep -nE '[A-Za-z]:/Studium|[A-Za-z]:\\Studium'; then
-            echo "::error::Fester Projektpfad gefunden. pfade.ROOT oder relative Pfade nutzen."
+            echo "::error::Fester Projektpfad gefunden. lernblatt.paths oder relative Pfade nutzen."
             exit 1
           fi
 
-      # 3. .pi/ spiegelt .claude/ (siehe AGENTS.md, Abschnitt Änderungen).
-      - name: Spiegelung .claude ↔ .pi
+      # 3. .pi/agents/ spiegelt .claude/agents/. Die Skills liest Pi direkt aus
+      #    .claude/skills/ (siehe .pi/settings.json).
+      - name: Spiegelung der Agenten
         run: |
-          diff -r --exclude=__pycache__ --exclude='*-workspace' \
-            .claude/skills .pi/agents/skills
           for f in .claude/agents/*.md; do
             diff -q "$f" ".pi/agents/$(basename "$f")"
+          done
+          for f in .pi/agents/*.md; do
+            diff -q "$f" ".claude/agents/$(basename "$f")"
           done
 
       - uses: astral-sh/setup-uv@v10.3.3
@@ -70,9 +73,9 @@ jobs:
           uv run ruff check .
           uv run ruff format --check .
 
-      - name: Kompilieren
-        run: uv run python -m compileall -q .claude .pi
-
-      # 5. Selbsttests aller Skripte (laufen ohne Kursmaterial), siehe tests/.
+      # 5. Selbsttests und CLI-Tests (laufen ohne Kursmaterial), siehe tests/.
       - name: Tests
         run: uv run pytest -v
+
+      - name: CLI
+        run: uv run lernblatt selftest

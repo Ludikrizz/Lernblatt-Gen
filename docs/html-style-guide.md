@@ -8,7 +8,7 @@ daneben. Offline öffenbar, druckbar auf A4.
 öffnet, zieht sich rund 160.000 Token Bildmüll in den Context. `save(bundle=True)`
 erzeugt bei Bedarf die Ein-Datei-Fassung zum Verschicken.
 
-Implementierung: `.claude/skills/lernblatt-generator/scripts/lernblatt_html.py`
+Implementierung: `src/lernblatt/sheet/html.py`
 (Klasse `LernblattHTML`). Inhaltlicher Stil: `style-guide.md`.
 
 ## Design-Entscheidungen
@@ -26,7 +26,7 @@ Implementierung: `.claude/skills/lernblatt-generator/scripts/lernblatt_html.py`
    Besonders in Stichpunkten muss das entscheidende Keyword beim Überfliegen sofort
    erkennbar sein.
 5. **Bilder so breit wie auf der Folie**, nie über die native Pixelbreite skaliert.
-   `pic(anteil=0.58)` setzt 58 % der Spalte; den Wert gibt `render_crop.py` aus.
+   `pic(anteil=0.58)` setzt 58 % der Spalte; den Wert gibt `lernblatt crop` aus.
 6. **Titel ist der Fachname, sonst nichts.** Kein Dozent, keine Quelle, kein
    Ground-Truth-Zusatz. Woher ein Abschnitt kommt, sagt der Foliensatz-Trenner.
 7. **A4-Marker links** alle ~1122px: blaue Zahl im weißen Kästchen. Nur Orientierung
@@ -59,17 +59,16 @@ nicht mit.
 ```python
 import sys
 
-sys.path.insert(0, ".claude/skills/lernblatt-generator/scripts")
-from lernblatt_html import LernblattHTML
+from lernblatt.sheet.html import LernblattHTML
 
 lb = LernblattHTML("Lernblatt <Fach>", img_dir="<Ausgabeordner>/bilder")
 
-lb.h_deck("03 LOD2 SPARQL")  # Foliensatz-Trenner
-lb.h_topic("RDF als Grundlage")  # Folientitel 1:1
-lb.kern("RDF beschreibt Daten als Tripel Subjekt – Prädikat – Objekt.")
+lb.h_deck("03 Lineare Regression")  # Foliensatz-Trenner
+lb.h_topic("Kleinste Quadrate")  # Folientitel 1:1
+lb.kern("Die Regressionsgerade minimiert die Summe der quadrierten Residuen.")
 lb.formel("<mrow><mi>x</mi><mo>=</mo><mn>1</mn></mrow>", "x gleich 1")
-lb.sublabel("RDF-Datenmodell:")
-lb.glossar("resource", "alles Benennbare, per URI identifiziert.")
+lb.sublabel("Modellannahmen:")
+lb.glossar("Residuum", "Abstand zwischen Messwert und Vorhersage.")
 lb.bullet("offenes Format (CSV statt Excel).", color="red")
 lb.pic("VL03-11.png", anteil=0.62)  # so breit wie auf der Folie
 lb.tabelle(
@@ -78,7 +77,7 @@ lb.tabelle(
 )  #   lb.img_tag(...) setzt ein Bild rein
 lb.akzent("Klausur-Aufgabe: …")
 lb.pic("VL03-17_annot.png", anteil=0.8)
-lb.save("Examples/<Fach>/Lernblaetter/Lernblatt_<Fach>.html")
+lb.save("data/<Fach>/output/Lernblatt_<Fach>.html")
 ```
 `formel(mathml, aria)` setzt einen MathML-Inhalt als zentrierte Blockformel. `aria`
 beschreibt sie für Screenreader. Jeder HTML-Formeltext nutzt diese Methode. Formeln,
@@ -103,5 +102,5 @@ HTML im Browser öffnen oder headless-Screenshot (Chrome DevTools MCP).
 
 ## Bekannte Grenze
 Der Auto-Crop ist ein Rechteck. Sitzt neben dem Titel ein Bild, bleibt der Titel im
-Screenshot — `render_crop.py` meldet das. Bei markierten Folien umgeht `--rect` den
+Screenshot — `lernblatt crop` meldet das. Bei markierten Folien umgeht `--rect` den
 Auto-Crop ganz.

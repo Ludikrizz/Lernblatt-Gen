@@ -17,10 +17,10 @@ das normale Lernblatt und enthält keine langen Herleitungen.
 
 ## Eingabe
 
-1. Lies `_derived/<Fach>/planung/themenliste.md` und die Quicknotes-Zuordnung.
-2. Lies `_derived/<Fach>/cache/markierungen.md` für die exakten Notizen und markierten
+1. Lies `data/<Fach>/work/planning/themenliste.md` und die Quicknotes-Zuordnung.
+2. Lies `data/<Fach>/work/cache/markierungen.md` für die exakten Notizen und markierten
    Wiederholungsfolien.
-3. Lies die zugehörigen Folienextrakte aus `_derived/<Fach>/cache/text/` nur kapitelweise.
+3. Lies die zugehörigen Folienextrakte aus `data/<Fach>/work/cache/text/` nur kapitelweise.
 4. Nutze die Vorlesungsfolien als Ground Truth. Beispiel-Lernblätter liefern nur den Stil.
 
 ## Auswahl
@@ -49,11 +49,11 @@ das normale Lernblatt und enthält keine langen Herleitungen.
 
 ## Ausgabe
 
-Erstelle den Quelltext unter `_derived/<Fach>/build/build_quicknotes.py` und die Ausgabe unter
-`Vorlesungen/<Fach>/Lernblaetter/Quicknotes_<Fach>.html`.
+Erstelle den Quelltext unter `data/<Fach>/work/build/build_quicknotes.py` und die Ausgabe unter
+`data/<Fach>/output/Quicknotes_<Fach>.html`.
 
 Nutze `LernblattHTML` aus
-`.claude/skills/lernblatt-generator/scripts/lernblatt_html.py`, damit die Ausgabe
+`src/lernblatt/sheet/html.py`, damit die Ausgabe
 offline funktioniert und druckbar bleibt. Verwende `h_deck` für die Foliensätze und
 `glossar` oder kompakte Tabellen für die Begriffe. Bilder gehören in den vorhandenen
 `bilder/`-Ordner neben dem normalen Lernblatt.

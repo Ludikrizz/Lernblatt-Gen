@@ -2,8 +2,8 @@
 name: moodle-kurs-material
 description: >-
   Lädt Vorlesungsfolien, Übungen und Klausur-Material aus einem Kurs der Goethe-Uni
-  herunter und sortiert die Dateien in die Fach-Ordner Vorlesungsfolien, Klausuren
-  und Uebungen. Unterstützt Moodle (moodle.studiumdigitale.uni-frankfurt.de, per
+  herunter und sortiert die Dateien in die Fach-Ordner sources/slides,
+  sources/exercises und sources/exams. Unterstützt Moodle (moodle.studiumdigitale.uni-frankfurt.de, per
   Session-Cookie) und OLAT (olat-ce.server.uni-frankfurt.de, per ZIP-Import). Nutze
   diesen Skill immer, wenn der Nutzer Kursmaterial, Folien, Übungsblätter,
   Notebooks oder Altklausuren aus Moodle oder OLAT sammeln, herunterladen, sichern,
@@ -13,8 +13,9 @@ description: >-
 
 # Kurs-Material holen (Moodle + OLAT)
 
-Zweck: aus einem Kurs alle Dateien holen und pro Fach in `Vorlesungsfolien`,
-`Klausuren` und `Uebungen` unter `W:\Studium\Lernen\Vorlesungen\<Fach>` einsortieren.
+Zweck: aus einem Kurs alle Dateien holen und pro Fach in `sources\slides`,
+`sources\exercises` und `sources\exams` unter `data\<Fach>\` (relativ zur
+Projektwurzel) einsortieren.
 Die Dateien dienen später als Kontext, um Lernblätter und Übungsaufgaben zu erzeugen.
 
 ## Quelle wählen
@@ -44,8 +45,8 @@ die Login-Seite. Der einzige Weg ist der Session-Cookie des eingeloggten Nutzers
    2. `F12` → Reiter **Application** (Anwendung).
    3. Links **Cookies** → die Moodle-Domain wählen.
    4. Zeile **`MoodleSession`** → **Value** kopieren und einfügen.
-3. **Fach-Ordner** — Zielordner unter `W:\Studium\Lernen\Vorlesungen\<Fach>` (z.B.
-   `Vorlesungen\Eingebettete Systeme`). Der Fachname kommt aus dem Kurstitel, den
+3. **Fach-Ordner** — Zielordner `data\<Fach>\` unter der Projektwurzel (z.B.
+   `data\Eingebettete Systeme`). Der Fachname kommt aus dem Kurstitel, den
    `fetch_moodle.ps1` ausgibt. Frag nur nach, wenn der Titel mehrdeutig ist.
 
 Der Cookie ist ein Sitzungs-Token. Behandle ihn vertraulich, logge ihn nicht.
@@ -54,12 +55,12 @@ der Cookie ungültig.
 
 ### Dateien laden (Moodle, ein Skript, ein Lauf)
 
-Führe `scripts/fetch_moodle.ps1` aus. Es baut die Session, prüft den Login, parst
-die Kursseite, löst jede Ressource zur echten Datei auf und lädt sie in einen
-Staging-Ordner. Nutze den Scratchpad als Staging.
+Führe `scripts\moodle\fetch_moodle.ps1` aus der Projektwurzel aus. Es baut die
+Session, prüft den Login, parst die Kursseite, löst jede Ressource zur echten
+Datei auf und lädt sie in einen Staging-Ordner. Nutze `scratch\staging` als Staging.
 
 ```powershell
-& "<skill>\scripts\fetch_moodle.ps1" -Cookie "<MoodleSession>" -CourseId <id> -OutDir "<scratchpad>\staging"
+& "scripts\moodle\fetch_moodle.ps1" -Cookie "<MoodleSession>" -CourseId <id> -OutDir "scratch\staging"
 ```
 
 Wichtig: **alles in EINEM PowerShell-Aufruf.** PowerShell-Variablen (die Session
@@ -92,13 +93,13 @@ entpackst und sortierst es.
    (z.B. Folien, Übungen getrennt) mehrere ZIPs. Ablegen z.B. in Downloads.
 2. **Pfad zu den ZIP(s)** — eine Datei, mehrere Dateien, oder ein Ordner, der die
    ZIPs enthält.
-3. **Fachname** — aus dem Kurstitel (z.B. `Prozessorientierte Informationssysteme`).
-   Ziel bleibt `W:\Studium\Lernen\Vorlesungen\<Fach>`.
+3. **Fachname** — aus dem Kurstitel (z.B. `Eingebettete Systeme`).
+   Ziel bleibt `data\<Fach>\` unter der Projektwurzel.
 
 ### Dateien einlesen (OLAT)
 
 ```powershell
-& "<skill>\scripts\ingest_zip.ps1" -ZipPath "<pfad-zur-zip-oder-ordner>" -OutDir "<scratchpad>\staging"
+& "scripts\moodle\ingest_zip.ps1" -ZipPath "<pfad-zur-zip-oder-ordner>" -OutDir "scratch\staging"
 ```
 
 Das Skript entpackt die ZIP(s), legt jede Datei flach als `<NNNN>_<name>` ins
@@ -111,40 +112,40 @@ Lies `manifest.json` und ordne jede Datei genau einer der drei Kategorien zu.
 Heuristik (nach Name, Endung und bei OLAT auch `relpath`), im Zweifel den Nutzer
 fragen. Ordnernamen in der ZIP (`relpath`) sind oft schon ein Kategorie-Hinweis:
 
-- **Vorlesungsfolien** — Folien und Vortrags-PDFs: Namen mit "Folien", "Intro",
-  "Overview", Themen-Slides, Gastvorträge. Meist `.pdf`.
-- **Klausuren** — Prüfungs-Material: Namen mit "Klausur", "Klausuraufgabe",
-  "Deckblatt", "Zusammenfassung ... Aufgaben", "Altklausur", plus die dazu
-  gehörenden Datendateien (z.B. eine `.ttl` zu einer Klausuraufgabe).
-- **Uebungen** — Übungsmaterial und Code: `.ipynb`-Notebooks, `.py`-Programme,
-  Übungsblätter, sowie Datensätze (`.csv`, `.ttl`, `.zip`), die eine Übung
-  füttern.
+- **Vorlesungsfolien** (`sources\slides`) — Folien und Vortrags-PDFs: Namen mit
+  "Folien", "Intro", "Overview", Themen-Slides, Gastvorträge. Meist `.pdf`.
+- **Klausuren** (`sources\exams`) — Prüfungs-Material: Namen mit "Klausur",
+  "Klausuraufgabe", "Deckblatt", "Zusammenfassung ... Aufgaben", "Altklausur",
+  plus die dazu gehörenden Datendateien (z.B. eine `.csv` zu einer Klausuraufgabe).
+- **Übungen** (`sources\exercises`) — Übungsmaterial und Code: `.ipynb`-Notebooks,
+  `.py`-Programme, Übungsblätter, sowie Datensätze (`.csv`, `.json`, `.zip`), die
+  eine Übung füttern.
 
 Regeln:
 - **Nur diese drei Ordner.** Kein `Datensaetze`, kein `Tools-Links`. Datensätze
   gehören zur Übung oder Klausur, zu der sie passen.
-- **Externe Tool-Links** (`links` im Manifest, z.B. RDFGrapher, Fuseki) sind
+- **Externe Tool-Links** (`links` im Manifest, z.B. Online-Editoren, Server-Tools) sind
   keine Dateien. Nicht herunterladen, nur in der Chat-Zusammenfassung nennen.
 - Vergib **saubere, sprechende Dateinamen**. Folien chronologisch nummerieren
   (`01_...`, `02_...`) in Kursreihenfolge (die Manifest-Reihenfolge entspricht
   der Kursseite).
 - Wenn eine Datei in keine Kategorie klar passt, frag den Nutzer statt zu raten.
 
-Schreibe eine Map-JSON (id → `Kategorie\SauberterName.ext`) in den Scratchpad,
-z.B.:
+Schreibe eine Map-JSON (id → `sources\<kategorie>\SauberterName.ext`, relativ zu
+`data\<Fach>\`) nach `scratch\map.json`, z.B.:
 
 ```json
 {
-  "363777": "Vorlesungsfolien\\01_Orga_Intro.pdf",
-  "363805": "Klausuren\\Deckblatt_Klausur.pdf",
-  "363783": "Uebungen\\SPARQL_Notebook.ipynb"
+  "363777": "sources\\slides\\01_Einfuehrung.pdf",
+  "363805": "sources\\exams\\Deckblatt_Klausur.pdf",
+  "363783": "sources\\exercises\\Uebung_01.ipynb"
 }
 ```
 
 ## Verschieben und prüfen (beide Quellen)
 
 ```powershell
-& "<skill>\scripts\organize.ps1" -MapJson "<scratchpad>\map.json" -StagingDir "<scratchpad>\staging" -TargetRoot "W:\Studium\Lernen\Vorlesungen\<Fach>"
+& "scripts\moodle\organize.ps1" -MapJson "scratch\map.json" -StagingDir "scratch\staging" -TargetRoot "data\<Fach>"
 ```
 
 Das Skript legt die Ordner an, verschiebt jede Datei per `Move-Item` auf ihren

@@ -14,7 +14,7 @@ description: >-
   ein Fach eine Themenliste, Relevanz-Analyse, Klausur-Schwerpunkte oder eine
   Vorbereitung auf die Lernblatt-Erstellung will, oder wenn er eine bestehende
   Themenliste um neues Kursmaterial erweitern, aktualisieren oder neu bewerten will
-  — auch wenn nur ein Fachname oder Vorlesungen/<Fach>-Ordner genannt wird. Dies ist
+  — auch wenn nur ein Fachname oder data/<Fach>-Ordner genannt wird. Dies ist
   Stufe 1 vor `lernblatt-generator`.
 ---
 
@@ -46,7 +46,7 @@ Klausurthema aufgenommen wird.
    und nicht aus einer Zählung. Kommt immer `rein`, ohne Budget-Prüfung. Oft die
    einzige Quelle, solange die Vorlesung noch läuft. Siehe Schritt 2b.
 1. **Klausur** — Altklausuren, Probeklausuren, Klausur-Zusammenfassung des
-   Dozenten, alles in `Klausuren/`. Stärkstes Signal für die **Form** der Aufgaben,
+   Dozenten, alles in `sources/exams/`. Stärkstes Signal für die **Form** der Aufgaben,
    nicht für die Themenauswahl. Siehe Schritt 3.
 2. **Übung** — was in Übungsaufgaben tatsächlich drankam.
 3. **Kopplung** — wie hängt ein Folien-Thema an 1 und 2? Ein Thema, das man zum
@@ -66,13 +66,13 @@ Klausurthema aufgenommen wird.
 ## Umfang ist ein Auswahlkriterium, kein Nebeneffekt
 Eine Themenliste, die alles aufnimmt, ist keine Auswahl. Ein Lernblatt, das man
 vor der Klausur nicht mehr durchkommt, ist verschenkte Arbeit — deshalb hat die
-Liste ein **Budget** und `graph.py` rechnet es aus (Schritt 6).
+Liste ein **Budget** und `lernblatt graph` rechnet es aus (Schritt 6).
 
 Das eigene Beispiel-Lernblatt liefert dafür die Referenz. Es entscheidet **nicht**
 über den Inhalt (es kann Lücken haben, Ground Truth bleiben die Folien), aber es
 sagt sehr genau, welche **Länge** der Nutzer noch lernt. Gemessen an den drei
 vorhandenen Blättern liegt die Dichte bei **2,4 bis 3,0 Themen je Blattseite**
-(CyberSec 125/42 S., DS1 90/30 S., POIS 84/35 S.) — der Richtwert ist 2,5.
+(125/42 S., 90/30 S., 84/35 S. in drei Testkursen) — der Richtwert ist 2,5.
 
 Das Budget ist eine **Orientierung, keine Obergrenze**. Es sagt, wie lang das Blatt
 wird — nicht, welches Thema falsch ist. Gekappt wird nur, was ohnehin unten in der
@@ -83,11 +83,11 @@ ihm nur die Zahl dazu. Regeln dafür in Schritt 8.
 ## Ablauf
 
 ### 1. Fach-Ordner bestätigen und Modus wählen
-Arbeite auf `W:\Studium\Lernen\Vorlesungen\<Fach>\` mit Unterordnern
-`Vorlesungsfolien/`, `Uebungen/`, `Klausuren/`. Frag den Fachnamen, falls unklar.
-`Examples/<Fach>/` ist nur ein Rückfall für alte Bestände.
+Arbeite auf `data/<Fach>/` mit den Unterordnern `sources/slides/`,
+`sources/exercises/`, `sources/exams/`. Frag den Fachnamen, falls unklar.
+Liegen unter `sources/` nur PDFs ohne Unterordner, gelten sie als Folien.
 
-**Prüf, ob `_derived/<Fach>/planung/themenliste.md` schon existiert.** Davon hängt ab, wie
+**Prüf, ob `data/<Fach>/work/planning/themenliste.md` schon existiert.** Davon hängt ab, wie
 du arbeitest:
 
 | Fall | Modus |
@@ -106,7 +106,7 @@ du nicht stillschweigend überschreiben.
 2. Lies die **alte** `themenliste.md` ein. Sie ist ab jetzt die Basis.
 3. Ergänze `terms.txt` um die Themen aus den neuen Decks. Bestehende Zeilen
    **nicht** anfassen — der Nutzer hat daran gearbeitet.
-4. Lauf Schritt 6 (`graph.py`). Der Graph rechnet über **alles** neu, auch über
+4. Lauf Schritt 6 (`lernblatt graph`). Der Graph rechnet über **alles** neu, auch über
    alte Themen. Das ist der Punkt: ein Thema aus Woche 2 kann durch die Übung aus
    Woche 9 plötzlich zum Kern werden.
 5. Übernimm alte Zeilen mit ihrem Rang, **ändere ihn nur mit Begründung**. Ein Rang,
@@ -127,7 +127,7 @@ der Quellenlage fest: welche Decks da sind (`01`–`07` von vermutlich 14), ob
 
 - **Die Deck-Abdeckungs-Prüfung in Schritt 8 gilt nur für vorhandene Decks.** Melde
   keine Lücke für einen Foliensatz, der noch nicht hochgeladen ist.
-- **Das Budget skaliert mit.** `graph.py` rechnet es aus den vorhandenen Folien-
+- **Das Budget skaliert mit.** `lernblatt graph` rechnet es aus den vorhandenen Folien-
   Themen. Halbes Semester heißt halbes Budget — was am Ende zusammenkommt, ergibt
   sich beim Fortschreiben von selbst.
 
@@ -136,22 +136,22 @@ Installiere die lokalen Parser einmal und starte dann den Lauf:
 ```bash
 uv sync
 winget install --id UB-Mannheim.TesseractOCR -e
-uv run python .claude/skills/themen-analyse/scripts/extract_and_map.py "<Fach>"
+uv run lernblatt extract "<Fach>"
 ```
 **pdf-inspector** bleibt der schnelle Erstpass. Nur gemeldete Problemseiten und
 Seiten mit weniger als 30 Wörtern plus großer Grafik gehen an PyMuPDF4LLM.
 Tesseract mit `deu+eng` läuft zuerst; RapidOCR übernimmt lokal bei einem Fehler.
 Das Skript schreibt
-nach `_derived/<Fach>/cache/` — alles dort ist wegwerfbar und in Sekunden neu da
-(Layout: `_derived/README.md`):
+nach `data/<Fach>/work/cache/` — alles dort ist wegwerfbar und in Sekunden neu da
+(Layout: `data/README.md`):
 - `text/VL_*.md`, `text/KL_*.md`, `text/UE_*.md` — **Markdown** je Vorlesung,
   Überschriften/Listen/Tabellen erhalten, Seiten getrennt durch
   `<!-- Seite N -->`.
 - `slide_titles.txt` — je Vorlesung eine Zeile pro **Thema**, nicht pro Seite:
   ```
-  ### 03_LOD2_SPARQL (39 Seiten, 36 Themen)
-  p7: RDF als Grundlage
-  p10-12 (final p12): RDF Schema mechanism
+  ### 03_Lineare_Regression (39 Seiten, 36 Themen)
+  p7: Kleinste Quadrate als Grundlage
+  p10-12 (final p12): Gradientenabstieg
   ```
   `p10-12 (final p12)` = Folgeseiten mit gleichem Titel, also eine Animations-
   Bau-Folge; **p12 ist die finale Stufe** und die Folie für Stufe 2.
@@ -163,13 +163,13 @@ Der Titel ist die **größte Schrift oben** auf der Folie, nicht die erste Textz
 - `OCR-Fallback ...` — ein OCR-Motor fiel aus. Der zweite Motor übernimmt.
 - `mixed` — Deck mischt Text- und Bildseiten. Bei Folien normal, kein Fehler.
 
-Selbsttest: `uv run python .claude/skills/themen-analyse/scripts/extract_and_map.py --selftest`
+Selbsttest: `uv run lernblatt extract --selftest`
 
 ### 2b. Eigene Markierungen einlesen (Signal 0)
 ```bash
-uv run python .claude/skills/themen-analyse/scripts/annots.py "<Fach>"
+uv run lernblatt annots "<Fach>"
 ```
-Schreibt `_derived/<Fach>/cache/markierungen.md`. Läuft in unter einer Sekunde und meldet
+Schreibt `data/<Fach>/work/cache/markierungen.md`. Läuft in unter einer Sekunde und meldet
 `0 Markierungen`, wenn es keine gibt — dann entfällt Signal 0 und du gehst weiter.
 
 Findet das Skript etwas, **lies die Datei ganz und dazu `docs/markierungen.md`**.
@@ -178,16 +178,16 @@ Themenliste folgt.
 
 | Markierung | Folge für die Themenliste |
 |---|---|
-| **Kasten** | Der Inhalt wird ein Thema. Trag das Rechteck in die Folien-Spalte, das `annots.py` empfiehlt: **`mit Beschriftung`**, falls angegeben, sonst `Crop`. Dazu `Grafik: N` — daran entscheidet Stufe 2, ob abgeschrieben oder gerendert wird (`docs/bild-zuschnitt.md`). |
+| **Kasten** | Der Inhalt wird ein Thema. Trag das Rechteck in die Folien-Spalte, das `lernblatt annots` empfiehlt: **`mit Beschriftung`**, falls angegeben, sonst `Crop`. Dazu `Grafik: N` — daran entscheidet Stufe 2, ob abgeschrieben oder gerendert wird (`docs/bild-zuschnitt.md`). |
 | **Textmarker** | Eigenes Thema mit Aufgabentyp `Wissen`. Der Nutzer will den Begriff erklärt bekommen, nicht den Satz drumherum. |
 | **Notiz** | Anweisung. Zerleg sie in ihre Einzelaufträge und mach daraus je ein Thema oder eine Zeile in der Empfehlungs-Begründung. |
 | **nichts markiert** (im markierten Deck) | Kein Thema. Der Nutzer hat die Seite bewusst ausgelassen. |
 
 Drei Dinge, die dabei leicht untergehen:
 
-- **Eine Notiz kann ein Thema verlangen, das die Folien nicht hergeben.** Bei GenAi
-  fordert die Notiz auf S. 4 `Regression`, das Wort kommt in Deck 02 kein einziges
-  Mal vor. Nimm es trotzdem auf, markier es sichtbar als `Quelle fehlt`, und frag
+- **Eine Notiz kann ein Thema verlangen, das die Folien nicht hergeben.** In einem
+  Testkurs fordert die Notiz auf S. 4 `Regression`, das Wort kommt in Deck 02 kein
+  einziges Mal vor. Nimm es trotzdem auf, markier es sichtbar als `Quelle fehlt`, und frag
   den Nutzer, ob es aus einem späteren Deck nachkommt. Weder erfinden noch
   weglassen.
 - **Markierte Themen sind budgetfest** (Schritt 8) und kommen nie auf `optional`.
@@ -198,17 +198,17 @@ Drei Dinge, die dabei leicht untergehen:
   Quellenlage, **welche** Decks markiert sind, damit der Unterschied sichtbar ist.
 
 ### 3. Klausur-Material ganz lesen (Signal 1)
-Lies **alle** `_derived/<Fach>/cache/text/KL_*.md` (meist klein). Die
+Lies **alle** `data/<Fach>/work/cache/text/KL_*.md` (meist klein). Die
 Zusammenfassung/Themenliste des Dozenten (oft `Zusammenfassung*`, `Themen*`) ist
 das stärkste Einzelsignal, weil sie Themen und Aufgabentypen direkt nennt.
 
-Für **Data Science 1** gilt ein wichtiger Sonderfall:
-`W:\Studium\Lernen\Vorlesungen\Data Science 1\Vorlesungsfolien\2026_07_06_Zusammenfassung_Klausuraufgaben_mitL.pdf`
-liegt technisch im Folienordner, ist aber als Klausur-Zusammenfassung zu behandeln.
-Lies die Datei vollständig. Übernimm jede Themenliste einzeln, jede Beispielaufgabe
-mit Aufgabenform und nötigem Vorwissen in die Aufgaben-Liste. `extract_and_map.py`
-ordnet diese Datei als `KL_*.md` ein, damit sie im Graphen als Klausurquelle zählt.
-Prüfe bei DS1, dass sie unter `cache/text/KL_*.md` auftaucht.
+Ein wichtiger Sonderfall: Ein PDF in `sources/slides/`, dessen Name sowohl
+„Zusammenfassung" als auch „Klausur" enthält, liegt technisch im Folienordner, ist
+aber als Klausur-Zusammenfassung zu behandeln. Lies die Datei vollständig.
+Übernimm jede Themenliste einzeln, jede Beispielaufgabe mit Aufgabenform und
+nötigem Vorwissen in die Aufgaben-Liste. `lernblatt extract` ordnet diese Datei
+als `KL_*.md` ein, damit sie im Graphen als Klausurquelle zählt. Prüfe, dass sie
+unter `cache/text/KL_*.md` auftaucht.
 
 Schreib dabei eine **Aufgaben-Liste** mit, je Aufgabe:
 `Art (Transfer/Wissen) | Form | gefragtes Thema | Vorwissen zum Lösen`.
@@ -225,7 +225,7 @@ auf**, auch wenn er nur ein Wort ist und der Graph ihn später nicht findet.
 Warum das so wichtig ist: eine Begriffsliste ist eine Ansage, keine Stichprobe.
 Jeder Begriff kostet im Lernblatt zwei Zeilen und bringt 1–2 sichere Punkte — das
 beste Verhältnis von Platz zu Punkten, das es gibt. Beim Abgleich der eigenen
-Lernblätter waren **alle zehn echten Lücken in DS1 Begriffe aus dieser Liste**
+Lernblätter waren **alle zehn echten Lücken eines Testkurses Begriffe aus dieser Liste**
 (Overfitting, ALTAI, Lack of Trust, Master Data Management, Schutzbedürftige
 Gruppen …). Sie fallen durch, weil sie unscheinbar sind, nicht weil sie unwichtig
 sind.
@@ -238,8 +238,9 @@ ihn nach. In der Ausgabe bekommen diese Themen Rang mindestens `Hoch`, Aufgabent
 
 **Die kommende Klausur ist nicht 1:1 die alte.** Eine Alt- oder Probeklausur zeigt,
 **wie** geprüft wird, nicht **was** drankommt. Dozenten sagen das oft selbst
-(DS1: „nur weil etwas hier nicht genannt wird, heißt es nicht, dass es nicht
-drankommen kann"; CyberSec: „Probeklausur deckt nicht zwingend alle Themenfelder ab").
+(in einem Testkurs: „nur weil etwas hier nicht genannt wird, heißt es nicht, dass
+es nicht drankommen kann"; in einem anderen: „Probeklausur deckt nicht zwingend
+alle Themenfelder ab").
 
 **Verwertbar** — übertrage das direkt in die Ausgabe:
 - **Aufgabenformen** — rechnen, zeichnen, Query schreiben, Grafik beschriften,
@@ -275,7 +276,7 @@ Das ist der Normalfall bei neuen Kursen. Dann:
 
 ### 4. Übungsaufgaben auswerten (Signal 2)
 Dasselbe für `UE_*.md`: welche Aufgabe fragt welches Thema, was braucht man zum
-Lösen. Ist `Uebungen/` leer, notiere das und stütze dich auf Signal 1.
+Lösen. Ist `sources/exercises/` leer, notiere das und stütze dich auf Signal 1.
 Übungsaufgaben sagen die Transfer-Aufgaben der Klausur oft direkt vorher.
 
 ### 5. Folien-Titel zu Themen verdichten + `terms.txt` schreiben
@@ -286,14 +287,14 @@ Gastvortrags-Titel raus; bei Dozenten-Markern wie „V" (Vertiefung) frag im Zwe
 
 Starter erzeugen, dann von Hand verdichten:
 ```bash
-uv run python .claude/skills/themen-analyse/scripts/graph.py "<Fach>" --init
+uv run lernblatt graph "<Fach>" --init
 ```
-Das schreibt `_derived/<Fach>/planung/terms.txt` mit den Roh-Titeln (bei DS1: 326, davon
-ist der Großteil Müll). Kürze auf ~20–50 echte Themen und gib je Thema die
+Das schreibt `data/<Fach>/work/planning/terms.txt` mit den Roh-Titeln (in einem Testkurs
+326, davon ist der Großteil Müll). Kürze auf ~20–50 echte Themen und gib je Thema die
 **Suchwörter** an — Synonyme, englische Begriffe, Abkürzungen, typische
 Code-Schnipsel:
 ```
-SPARQL: sparql, select ?, prefix, where {
+Gradientenabstieg: gradient descent, gradientenabstieg, lernrate
 Datenqualität-Metriken: metrik, completeness, accuracy, vollständigkeit
 ```
 Ohne Suchwörter findet der Abgleich nur wörtliche Titel-Treffer. Nimm die Begriffe
@@ -301,14 +302,14 @@ aus Schritt 3 und 4 mit auf — auch Themen, die nur in der Klausur einen Namen 
 
 **Suchwörter matchen ganze Wörter, kein Präfix.** `artifact` findet `Artifacts`
 nicht, `swimlane` findet `Swimlanes` nicht. Schreib Plural und Beugung mit aus.
-Das ist Absicht: Präfix-Suche würde `RDF` in `RDFS` finden. Die häufigste Ursache
+Das ist Absicht: Präfix-Suche würde `ML` in `MLP` finden. Die häufigste Ursache
 für 0-Treffer-Themen in Schritt 6.
 
 ### 6. Kopplungs-Graph rechnen (Signal 3)
 ```bash
-uv run python .claude/skills/themen-analyse/scripts/graph.py "<Fach>"
+uv run lernblatt graph "<Fach>"
 ```
-Schreibt `_derived/<Fach>/cache/graph.md`: je Thema die Treffer in KL/UE/VL, den **Grad**
+Schreibt `data/<Fach>/work/cache/graph.md`: je Thema die Treffer in KL/UE/VL, den **Grad**
 und die stärksten Nachbarn. Zwei Themen auf derselben Seite = eine Kante,
 gewichtet nach Quelle (Klausur 3, Übung 2, Folien 1). Hoher Grad = das Thema
 taucht überall zusammen mit anderen auf, ist also Träger des Stoffs.
@@ -322,11 +323,11 @@ Lies nur `graph.md`, nicht die Extrakte. Der Kopf der Datei nennt drei Dinge, di
 in Schritt 8 gebraucht werden:
 
 - **Umfangs-Budget** — Folien-Themen gesamt, Ziel-Seitenzahl und daraus „rund N
-  Themen mit `rein`". Die Seitenzahl kommt aus dem eigenen Beispiel-Lernblatt in
-  `Vorlesungen/<Fach>/`, sonst aus einer Schätzung (1 Blattseite je 10 Folien-Themen).
+  Themen mit `rein`". Die Seitenzahl kommt aus dem eigenen Beispiel-Lernblatt
+  (`Lernblatt*.pdf` unter `data/<Fach>/sources/`), sonst aus einer Schätzung (1 Blattseite je 10 Folien-Themen).
 - **stumme Decks** — Foliensätze, in denen kein einziges Thema aus `terms.txt`
   trifft. Fast immer fehlen Suchwörter oder ein ganzer Foliensatz wurde beim
-  Verdichten übersehen. Reine Orga-Dateien (`00_*_Infos`) dürfen stumm bleiben.
+  Verdichten übersehen. Reine Orga-Dateien (z.B. `00_Infos`) dürfen stumm bleiben.
 - **Themen ohne Treffer** — meist falsche Suchwörter. Steht dahinter „N Treffer
   ohne Wortgrenze", ist es Plural oder Beugung (`swimlane` findet `Swimlanes`
   nicht): Suchwort erweitern und neu laufen (0,8 s).
@@ -362,15 +363,15 @@ Quellenlage, dass kein Bonus-Material vorliegt.
 
 Nur wenn du einen Block baust: manche Bonusaufgaben fragen **fachfremdes
 Folien-Randwissen** — Details, die auf den Folien stehen, aber nichts mit dem Fach
-zu tun haben. Bei DS1 ist das belegt („Unterschied Herzinfarkt und Herzstillstand"
-aus dem Ethik-Use-Case). Solche Themen findet der Graph nie: sie koppeln an nichts
+zu tun haben. In einem Testkurs ist das belegt (ein medizinisches Detail aus einem
+Ethik-Use-Case). Solche Themen findet der Graph nie: sie koppeln an nichts
 und stehen in keiner Zusammenfassung. Geh die Folien dann gezielt nach dem Muster
 durch (konkrete Zahl, Eigenname, medizinisches oder historisches Detail,
 fachfremdes Bild oder Beispiel-Datensatz) und gib das Ergebnis als eigenen Block
 mit Rang `Bonus` aus — zuletzt lernen, Aufwand klein halten.
 
 ### 8. Relevanz-Tabelle ausgeben
-Schreibe `_derived/<Fach>/planung/themenliste.md` und lege sie dem Nutzer vor:
+Schreibe `data/<Fach>/work/planning/themenliste.md` und lege sie dem Nutzer vor:
 ```markdown
 | # | Thema | Folien | KL | UE | Grad | Rolle | Aufgabentyp | Rang | Empfehlung |
 |---|-------|--------|----|----|------|-------|-------------|------|-----------|
@@ -449,8 +450,8 @@ kann der Nutzer eine Zeile in zehn Sekunden zurückholen, ohne die Folie zu öff
 
 Prüf zum Schluss zwei Dinge:
 - **Hat jeder Foliensatz mindestens ein Thema mit `rein`?** Fehlt einer ganz, fällt
-  beim Lernen ein kompletter Kursteil weg. Genau das ist im CyberSec-Lernblatt
-  passiert: Deck 11 (AI Security) fehlt vollständig und kostet 10 Klausurpunkte.
+  beim Lernen ein kompletter Kursteil weg. Genau das ist in einem
+  Testkurs-Lernblatt passiert: Deck 11 (AI Security) fehlt vollständig und kostet 10 Klausurpunkte.
   Ausnahmen sind Orga- und Gastvortrags-Decks — die schreib dazu.
 - **Ist jede Transfer- und Wissensabfrage aus Schritt 3 und 4 durch ein Thema mit
   `rein` und einem Einbauort abgedeckt?** Sonst ist die Liste fehlerhaft.
@@ -465,12 +466,12 @@ Bitte den Nutzer explizit um Freigabe: streichen, ergänzen, Rang ändern, `opti
 hochstufen. Die freigegebene Datei ist der Input für `lernblatt-generator`.
 
 ## Gotchas
-- **Quellenpfad:** Kursmaterial liegt primär in `Vorlesungen/<Fach>/`.
-  `Examples/<Fach>/` bleibt nur ein Rückfall für alte Bestände.
+- **Quellenpfad:** Kursmaterial liegt in `data/<Fach>/sources/`. Das Layout steht
+  in `data/README.md`.
 - **PowerShell-Variablen überleben nicht** zwischen Tool-Aufrufen → jedes Skript
   macht alles in einem Lauf.
 - Der pdf-inspector-Erstpass bleibt schnell. OCR kostet nur auf Problemseiten Zeit;
-  `graph.py` bleibt bei etwa 1 s.
+  `lernblatt graph` bleibt bei etwa 1 s.
 - **Der Graph ist ein Hinweis, kein Urteil.** Er zählt nur Ko-Vorkommen auf einer
   Seite. Ein hoher Grad kann auch heißen, dass ein Wort einfach überall steht
   (Fußzeilen, Links). Prüf die Top-Themen kurz gegen `slide_titles.txt`.
@@ -479,15 +480,15 @@ hochstufen. Die freigegebene Datei ist der Input für `lernblatt-generator`.
   die `VL_*.md` am Stück.
 - Parser liefern Kandidaten. Das aktuelle OpenAI-Modell entscheidet weiterhin,
   was relevant ist, welcher Ausschnitt passt und ob der fertige Crop verständlich ist.
-- **`_derived/<Fach>/cache/` ist wegwerfbar.** `planung/`, `analysen/` und `build/`
-  bleiben erhalten. Das vollständige Layout steht in `_derived/README.md`.
+- **`data/<Fach>/work/cache/` ist wegwerfbar.** `work/planning/`, `work/analyses/` und `work/build/`
+  bleiben erhalten. Das vollständige Layout steht in `data/README.md`.
   `--init` überschreibt `terms.txt` nicht.
-- **Nie ganze `cache/text/VL_*.md` in den Context laden** — CyberSec sind 505 KB.
+- **Nie ganze `cache/text/VL_*.md` in den Context laden** — in einem Testkurs 505 KB.
   Dafür gibt es `slide_titles.txt` und `graph.md`. `KL_*`/`UE_*` sind klein genug.
-- **`planung/themenliste.md` ist keine Wegwerf-Datei.** Existiert sie schon, arbeite im
+- **`work/planning/themenliste.md` ist keine Wegwerf-Datei.** Existiert sie schon, arbeite im
   Fortschreib-Modus (Schritt 1). Ein Rang, den der Nutzer gesetzt hat, überlebt
   jeden neuen Lauf, solange kein neuer Beleg dagegen spricht.
-- Markierungen liest nur `annots.py`. `pdf-inspector` sieht sie nicht — sie stehen
+- Markierungen liest nur `lernblatt annots`. `pdf-inspector` sieht sie nicht — sie stehen
   in der Annotations-Ebene des PDFs, nicht im Text.
-- Selbsttests: `extract_and_map.py --selftest`, `graph.py --selftest`,
-  `annots.py --selftest`.
+- Selbsttests: `uv run lernblatt selftest` (alle) oder einzeln
+  `uv run lernblatt extract|graph|annots --selftest`.
