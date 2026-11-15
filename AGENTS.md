@@ -36,8 +36,14 @@ Kurs läuft, kann `Vorlesungen/<Fach>/` verwendet werden. Die Pfadlogik in
 
 ## Einrichtung
 
+Das Projekt nutzt [uv](https://docs.astral.sh/uv/). Abhängigkeiten stehen in
+`pyproject.toml`, die genauen Versionen in `uv.lock`, die Python-Version in
+`.python-version`.
+
 ```bash
-pip install -r requirements.txt
+uv sync                 # legt .venv an und installiert alles
+uv run python <skript>  # führt ein Skript in dieser Umgebung aus
+uv add <paket>          # neue Abhängigkeit, aktualisiert uv.lock
 ```
 
 - `pdf-inspector` (PyPI, Quelle: https://github.com/firecrawl/pdf-inspector)
@@ -72,8 +78,8 @@ Alle Befehle laufen aus der Projektwurzel, dem Ordner mit dieser `AGENTS.md`. Er
 den Ordnernamen des Fachs:
 
 ```bash
-python "_derived/<Fach>/build/build_lernblatt.py"
-python "_derived/<Fach>/build/build_quicknotes.py"
+uv run python "_derived/<Fach>/build/build_lernblatt.py"
+uv run python "_derived/<Fach>/build/build_quicknotes.py"
 ```
 
 `build/build_quicknotes.py` ist optional und wird nur ausgeführt, wenn die Datei existiert.
@@ -83,18 +89,20 @@ eingebettet.
 
 ## Prüfungen
 
-Es gibt keinen allgemeinen `pytest`- oder Paketmanager-Testlauf. Nutze die
-vorhandenen Selbsttests und Artefaktprüfungen:
+Es gibt keinen `pytest`-Lauf. Nutze Ruff und die vorhandenen Selbsttests und
+Artefaktprüfungen:
 
 ```bash
-python -m py_compile "_derived/<Fach>/build/build_lernblatt.py" "_derived/<Fach>/build/chapters/"*.py
-python .claude/skills/lernblatt-generator/scripts/lernblatt_html.py --selftest
-python .claude/skills/lernblatt-generator/scripts/slides.py --selftest
-python .claude/skills/lernblatt-generator/scripts/check_crops.py --selftest
-python .claude/skills/themen-analyse/scripts/extract_and_map.py --selftest
-python .claude/skills/themen-analyse/scripts/annots.py --selftest
-python .claude/skills/themen-analyse/scripts/graph.py --selftest
-python .claude/skills/lernblatt-generator/scripts/check_crops.py "Vorlesungen/<Fach>/Lernblaetter/bilder"
+uv run ruff check .
+uv run ruff format --check .
+uv run python -m py_compile "_derived/<Fach>/build/build_lernblatt.py" "_derived/<Fach>/build/chapters/"*.py
+uv run python .claude/skills/lernblatt-generator/scripts/lernblatt_html.py --selftest
+uv run python .claude/skills/lernblatt-generator/scripts/slides.py --selftest
+uv run python .claude/skills/lernblatt-generator/scripts/check_crops.py --selftest
+uv run python .claude/skills/themen-analyse/scripts/extract_and_map.py --selftest
+uv run python .claude/skills/themen-analyse/scripts/annots.py --selftest
+uv run python .claude/skills/themen-analyse/scripts/graph.py --selftest
+uv run python .claude/skills/lernblatt-generator/scripts/check_crops.py "Vorlesungen/<Fach>/Lernblaetter/bilder"
 ```
 
 Nach jedem Build zusätzlich prüfen:
@@ -108,7 +116,7 @@ Nach jedem Build zusätzlich prüfen:
 Für eine Browserprüfung kann die Projektwurzel temporär dienen:
 
 ```bash
-python -m http.server 8765 --bind 127.0.0.1
+uv run python -m http.server 8765 --bind 127.0.0.1
 ```
 
 Öffne danach die erzeugte HTML-Datei unter
@@ -119,9 +127,9 @@ python -m http.server 8765 --bind 127.0.0.1
 Typische Befehle für ein Fach sind:
 
 ```bash
-python .claude/skills/themen-analyse/scripts/extract_and_map.py <Fach>
-python .claude/skills/themen-analyse/scripts/annots.py <Fach>
-python .claude/skills/themen-analyse/scripts/graph.py <Fach>
+uv run python .claude/skills/themen-analyse/scripts/extract_and_map.py <Fach>
+uv run python .claude/skills/themen-analyse/scripts/annots.py <Fach>
+uv run python .claude/skills/themen-analyse/scripts/graph.py <Fach>
 ```
 
 Automatische Analysedaten stehen unter `_derived/<Fach>/cache/`. Dauerhafte Berichte
@@ -160,7 +168,7 @@ zu überschreiben.
 Beispiel mit Platzhaltern:
 
 ```bash
-python .claude/skills/lernblatt-generator/scripts/render_crop.py \
+uv run python .claude/skills/lernblatt-generator/scripts/render_crop.py \
   --pdf "Vorlesungen/<Fach>/Vorlesungsfolien/<datei>.pdf" \
   --pages 1,2 --out "Vorlesungen/<Fach>/Lernblaetter/bilder" --prefix VL01
 ```
@@ -176,7 +184,8 @@ python .claude/skills/lernblatt-generator/scripts/render_crop.py \
 5. Merge mit „Squash and merge“.
 
 Der CI-Check prüft: kein Kursmaterial im Commit, keine festen Projektpfade,
-Spiegelung `.claude/` und `.pi/`, Lint, Kompilieren und die Selbsttests.
+Spiegelung `.claude/` und `.pi/`, Ruff (Lint und Format), Kompilieren und die
+Selbsttests. Vor dem Push lokal: `uv run ruff format .` und `uv run ruff check --fix .`.
 
 ## Änderungen
 

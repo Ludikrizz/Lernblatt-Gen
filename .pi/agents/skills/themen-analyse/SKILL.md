@@ -134,9 +134,9 @@ der Quellenlage fest: welche Decks da sind (`01`–`07` von vermutlich 14), ob
 ### 2. Text lokal extrahieren + Folien-Titel mappen
 Installiere die lokalen Parser einmal und starte dann den Lauf:
 ```bash
-python -m pip install -r requirements.txt
+uv sync
 winget install --id UB-Mannheim.TesseractOCR -e
-python .claude/skills/themen-analyse/scripts/extract_and_map.py "<Fach>"
+uv run python .claude/skills/themen-analyse/scripts/extract_and_map.py "<Fach>"
 ```
 **pdf-inspector** bleibt der schnelle Erstpass. Nur gemeldete Problemseiten und
 Seiten mit weniger als 30 Wörtern plus großer Grafik gehen an PyMuPDF4LLM.
@@ -163,11 +163,11 @@ Der Titel ist die **größte Schrift oben** auf der Folie, nicht die erste Textz
 - `OCR-Fallback ...` — ein OCR-Motor fiel aus. Der zweite Motor übernimmt.
 - `mixed` — Deck mischt Text- und Bildseiten. Bei Folien normal, kein Fehler.
 
-Selbsttest: `python .claude/skills/themen-analyse/scripts/extract_and_map.py --selftest`
+Selbsttest: `uv run python .claude/skills/themen-analyse/scripts/extract_and_map.py --selftest`
 
 ### 2b. Eigene Markierungen einlesen (Signal 0)
 ```bash
-python .claude/skills/themen-analyse/scripts/annots.py "<Fach>"
+uv run python .claude/skills/themen-analyse/scripts/annots.py "<Fach>"
 ```
 Schreibt `_derived/<Fach>/cache/markierungen.md`. Läuft in unter einer Sekunde und meldet
 `0 Markierungen`, wenn es keine gibt — dann entfällt Signal 0 und du gehst weiter.
@@ -286,7 +286,7 @@ Gastvortrags-Titel raus; bei Dozenten-Markern wie „V" (Vertiefung) frag im Zwe
 
 Starter erzeugen, dann von Hand verdichten:
 ```bash
-python .claude/skills/themen-analyse/scripts/graph.py "<Fach>" --init
+uv run python .claude/skills/themen-analyse/scripts/graph.py "<Fach>" --init
 ```
 Das schreibt `_derived/<Fach>/planung/terms.txt` mit den Roh-Titeln (bei DS1: 326, davon
 ist der Großteil Müll). Kürze auf ~20–50 echte Themen und gib je Thema die
@@ -306,7 +306,7 @@ für 0-Treffer-Themen in Schritt 6.
 
 ### 6. Kopplungs-Graph rechnen (Signal 3)
 ```bash
-python .claude/skills/themen-analyse/scripts/graph.py "<Fach>"
+uv run python .claude/skills/themen-analyse/scripts/graph.py "<Fach>"
 ```
 Schreibt `_derived/<Fach>/cache/graph.md`: je Thema die Treffer in KL/UE/VL, den **Grad**
 und die stärksten Nachbarn. Zwei Themen auf derselben Seite = eine Kante,

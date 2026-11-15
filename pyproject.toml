@@ -1,0 +1,38 @@
+[project]
+name = "lernblatt-gen"
+version = "0.1.0"
+description = "GenAI-Pipeline: quellengebundene Lernblätter aus Vorlesungsfolien, Übungen und Klausuren"
+readme = "AGENTS.md"
+requires-python = ">=3.12"
+dependencies = [
+    # Text-Erstpass und Folientitel (Rust-Parser, https://github.com/firecrawl/pdf-inspector)
+    "pdf-inspector==1.26.0",
+    # PDF-Markierungen, Geometrie, Crops, Rendering
+    "pymupdf==2.1",
+    # OCR-Fallback für Scans und Grafikseiten (ruft Tesseract oder RapidOCR auf)
+    "pymupdf4llm==2.1",
+    "rapidocr==3.10.0",
+    "onnxruntime==1.32.0",
+    # Selbsttest des OCR-Fallbacks
+    "pillow==13.0.0",
+]
+
+[dependency-groups]
+dev = ["ruff==0.17.5"]
+
+[tool.uv]
+# Skript-Sammlung, kein installierbares Paket.
+package = false
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+extend-exclude = ["tools", "Scratchpad", "Vorlesungen", "Examples", "_derived"]
+
+[tool.ruff.lint]
+# E9: Syntaxfehler, F: Pyflakes (undefinierte Namen, ungenutzte Importe),
+# I: Import-Reihenfolge, B: typische Fehlerquellen (bugbear).
+select = ["E9", "F", "I", "B"]
+ignore = [
+    "B905",  # zip() ohne strict= ist in den Skripten beabsichtigt
+]

@@ -23,6 +23,7 @@ pro Seite. Pfade, die auf fast jeder Seite an derselben Stelle liegen, sind Chro
 und fallen raus. Was uebrig bleibt, ist gezeichneter Inhalt: Diagramme, Baeume,
 Tabellenlinien.
 """
+
 import io
 import os
 import re
@@ -32,23 +33,37 @@ from collections import Counter
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from pfade import cache, pdfs
+
 # Rolle je Annotationstyp. Der Nutzer denkt in diesen drei Kategorien, nicht in
 # PDF-Typnamen — die Uebersetzung gehoert hierher, nicht in den Skill-Text.
 ROLLE = {
-    "Square": "Kasten", "Circle": "Kasten", "Polygon": "Kasten",
-    "PolyLine": "Kasten", "Ink": "Kasten",
-    "Highlight": "Textmarker", "Underline": "Textmarker",
-    "StrikeOut": "Textmarker", "Squiggly": "Textmarker",
-    "FreeText": "Notiz", "Text": "Notiz",
+    "Square": "Kasten",
+    "Circle": "Kasten",
+    "Polygon": "Kasten",
+    "PolyLine": "Kasten",
+    "Ink": "Kasten",
+    "Highlight": "Textmarker",
+    "Underline": "Textmarker",
+    "StrikeOut": "Textmarker",
+    "Squiggly": "Textmarker",
+    "FreeText": "Notiz",
+    "Text": "Notiz",
 }
-TEMPLATE_ANTEIL = 0.8   # Pfad auf >= 80 % der Seiten an gleicher Stelle = Master
-MIN_PFAD = 200.0        # pt^2; kleiner ist ein Strich, keine Grafik
-MAX_TEXT = 1500         # Zeichen je Kasten im Report, danach gekuerzt
-RAND = 3                # pt Abstand zur Kastenkante, sonst laeuft der
-                        # rote Markierungsstrich mit ins Bild
-FARBEN = {(1, 1, 0): "gelb", (1, 0, 0): "rot", (0, 1, 0): "gruen",
-          (0, 0, 1): "blau", (0, 1, 1): "cyan", (1, 0, 1): "magenta",
-          (0, 0, 0): "schwarz", (1, 1, 1): "weiss"}
+TEMPLATE_ANTEIL = 0.8  # Pfad auf >= 80 % der Seiten an gleicher Stelle = Master
+MIN_PFAD = 200.0  # pt^2; kleiner ist ein Strich, keine Grafik
+MAX_TEXT = 1500  # Zeichen je Kasten im Report, danach gekuerzt
+RAND = 3  # pt Abstand zur Kastenkante, sonst laeuft der
+# rote Markierungsstrich mit ins Bild
+FARBEN = {
+    (1, 1, 0): "gelb",
+    (1, 0, 0): "rot",
+    (0, 1, 0): "gruen",
+    (0, 0, 1): "blau",
+    (0, 1, 1): "cyan",
+    (1, 0, 1): "magenta",
+    (0, 0, 0): "schwarz",
+    (1, 1, 1): "weiss",
+}
 
 
 def _rkey(r):
@@ -91,12 +106,16 @@ def _eigen(page):
 def grafik_teile(page, template, clip=None):
     """[Rechteck] der gezeichneten/eingebetteten Grafik, optional auf clip begrenzt."""
     import pymupdf as fitz
+
     eigen = _eigen(page)
     out = [fitz.Rect(i["bbox"]) for i in page.get_image_info()]
-    out += [d["rect"] for d in page.get_drawings()
-            if _rkey(d["rect"]) not in template
-            and abs(d["rect"].get_area()) >= MIN_PFAD
-            and not any(_nah(d["rect"], e) for e in eigen)]
+    out += [
+        d["rect"]
+        for d in page.get_drawings()
+        if _rkey(d["rect"]) not in template
+        and abs(d["rect"].get_area()) >= MIN_PFAD
+        and not any(_nah(d["rect"], e) for e in eigen)
+    ]
     if clip is not None:
         out = [r for r in out if r.intersects(clip)]
     return out
@@ -112,6 +131,7 @@ def mit_beschriftung(page, kasten, huelle):
     zerschneiden.
     """
     import pymupdf as fitz
+
     if huelle is None:
         return None
     innen = kasten + (RAND, RAND, -RAND, -RAND)
@@ -124,16 +144,20 @@ def mit_beschriftung(page, kasten, huelle):
         if not innen.contains(bb):
             continue
         if min(bb.y1, huelle.y1) - max(bb.y0, huelle.y0) <= 0:
-            continue                         # Absatz ueber/unter der Grafik
+            continue  # Absatz ueber/unter der Grafik
         blocks.append(bb)
         out |= bb
 
     # Ganze Textbloecke aufnehmen, sobald der erste Zuschnitt sie beruehrt.
     # So wird z.B. keine zweite Zeile oder Formel an der Cropkante gekappt.
     while True:
-        neu = [bb for b in page.get_text("blocks") if b[4].strip()
-               for bb in [fitz.Rect(b[:4])]
-               if innen.contains(bb) and bb.intersects(out) and bb not in blocks]
+        neu = [
+            bb
+            for b in page.get_text("blocks")
+            if b[4].strip()
+            for bb in [fitz.Rect(b[:4])]
+            if innen.contains(bb) and bb.intersects(out) and bb not in blocks
+        ]
         if not neu:
             break
         blocks.extend(neu)
@@ -145,6 +169,7 @@ def mit_beschriftung(page, kasten, huelle):
 def inhalt(page, rect, template):
     """Was steckt im Kasten: (Text, Grafik-Rechtecke, Huelle, Huelle+Beschriftung)."""
     import pymupdf as fitz
+
     txt = re.sub(r"[ \t]+\n", "\n", page.get_text("text", clip=rect)).strip()
     teile = grafik_teile(page, template, rect)
     huelle = None
@@ -152,7 +177,7 @@ def inhalt(page, rect, template):
         huelle = fitz.Rect(teile[0])
         for r in teile[1:]:
             huelle |= r
-        huelle &= rect                       # nie ueber den Kasten hinaus croppen
+        huelle &= rect  # nie ueber den Kasten hinaus croppen
     # Bei einer reinen Grafik gibt es keine separate Beschriftung. Text, der
     # innerhalb der Grafik gezeichnet ist, bleibt Teil des normalen Grafik-Crops.
     beschr = mit_beschriftung(page, rect, huelle) if txt else None
@@ -167,6 +192,7 @@ def lies(pfad):
     aber der Autor soll sehen, was er damit weglaesst.
     """
     import pymupdf as fitz
+
     marks, seiten = [], []
     with fitz.open(pfad) as doc:
         template = template_pfade(doc)
@@ -182,16 +208,29 @@ def lies(pfad):
                     txt = notiz or txt
                 elif notiz:
                     txt = f"{txt}\n[Randnotiz: {notiz}]" if txt else notiz
-                an_seite.append({
-                    "seite": nr, "typ": typ, "rolle": rolle, "farbe": farbe(an),
-                    "rect": _rkey(an.rect), "text": re.sub(r"\n{3,}", "\n\n", txt),
-                    "grafik": len(teile), "crop": _rkey(huelle) if huelle else None,
-                    "crop_text": _rkey(beschr) if beschr else None,
-                })
+                an_seite.append(
+                    {
+                        "seite": nr,
+                        "typ": typ,
+                        "rolle": rolle,
+                        "farbe": farbe(an),
+                        "rect": _rkey(an.rect),
+                        "text": re.sub(r"\n{3,}", "\n\n", txt),
+                        "grafik": len(teile),
+                        "crop": _rkey(huelle) if huelle else None,
+                        "crop_text": _rkey(beschr) if beschr else None,
+                    }
+                )
             marks += an_seite
             wort = len(page.get_text("text").split())
-            seiten.append({"seite": nr, "marks": len(an_seite), "woerter": wort,
-                           "grafik": len(grafik_teile(page, template))})
+            seiten.append(
+                {
+                    "seite": nr,
+                    "marks": len(an_seite),
+                    "woerter": wort,
+                    "grafik": len(grafik_teile(page, template)),
+                }
+            )
     return marks, seiten
 
 
@@ -221,18 +260,20 @@ def write_report(fach, quellen=None, dest=None):
     treffer, dateien = 0, 0
     with open(dest, "w", encoding="utf-8") as fh:
         fh.write(KOPF.format(fach=fach))
-        for src, name, pfad in (quellen or pdfs(fach)):
+        for src, name, pfad in quellen or pdfs(fach):
             try:
                 marks, seiten = lies(pfad)
-            except Exception as e:                  # kaputtes PDF ueberspringen
+            except Exception as e:  # kaputtes PDF ueberspringen
                 fh.write(f"\n- WARN {name}: nicht lesbar ({e})\n")
                 continue
             dateien += 1
             if not marks:
                 continue
             treffer += len(marks)
-            fh.write(f"\n## {src} · {name} — {len(marks)} Markierungen "
-                     f"auf {len({m['seite'] for m in marks})} von {len(seiten)} Seiten\n")
+            fh.write(
+                f"\n## {src} · {name} — {len(marks)} Markierungen "
+                f"auf {len({m['seite'] for m in marks})} von {len(seiten)} Seiten\n"
+            )
             for s in seiten:
                 auf = [m for m in marks if m["seite"] == s["seite"]]
                 if not auf:
@@ -244,10 +285,11 @@ def write_report(fach, quellen=None, dest=None):
                         kopf += f" ({m['farbe']})"
                     kopf += f" · Rechteck {m['rect']}"
                     if m["rolle"] == "Kasten":
-                        kopf += (f" · Grafik: {m['grafik']}"
-                                 + (f", Crop {m['crop']}" if m["crop"] else "")
-                                 + (f", **mit Beschriftung {m['crop_text']}**"
-                                    if m["crop_text"] else ""))
+                        kopf += (
+                            f" · Grafik: {m['grafik']}"
+                            + (f", Crop {m['crop']}" if m["crop"] else "")
+                            + (f", **mit Beschriftung {m['crop_text']}**" if m["crop_text"] else "")
+                        )
                     fh.write(f"\n{kopf}\n")
                     t = m["text"]
                     if len(t) > MAX_TEXT:
@@ -262,39 +304,46 @@ def write_report(fach, quellen=None, dest=None):
                         # Weder Folientext noch Folien-Grafik: der Kasten umschliesst
                         # leere Flaeche. Fast immer eine eigene Handzeichnung neben
                         # einer Notiz — Deko der Anweisung, kein Folieninhalt.
-                        fh.write("\n(leer — weder Text noch Grafik. Vermutlich eigene "
-                                 "Handzeichnung; gehoert zur Notiz daneben.)\n")
+                        fh.write(
+                            "\n(leer — weder Text noch Grafik. Vermutlich eigene "
+                            "Handzeichnung; gehoert zur Notiz daneben.)\n"
+                        )
             ohne = [s for s in seiten if not s["marks"]]
             fh.write(f"\n### Nicht markiert — {len(ohne)} von {len(seiten)} Seiten\n\n")
             if ohne:
                 fh.write("| Seite | Woerter | Grafik |\n|---|---|---|\n")
                 for s in ohne:
                     fh.write(f"| p{s['seite']} | {s['woerter']} | {s['grafik']} |\n")
-                fh.write("\nDiese Seiten bleiben draussen. Nur zurueckholen, wenn ein "
-                         "Kasten oder eine Notiz auf sie verweist.\n")
+                fh.write(
+                    "\nDiese Seiten bleiben draussen. Nur zurueckholen, wenn ein "
+                    "Kasten oder eine Notiz auf sie verweist.\n"
+                )
             else:
                 fh.write("Keine — jede Seite ist markiert.\n")
         if not treffer:
-            fh.write("\nKeine Markierungen gefunden. Das ist der Normalfall, wenn der "
-                     "Nutzer die PDFs noch nicht durchgearbeitet hat — Signal 0 "
-                     "entfaellt, kein Fehler.\n")
+            fh.write(
+                "\nKeine Markierungen gefunden. Das ist der Normalfall, wenn der "
+                "Nutzer die PDFs noch nicht durchgearbeitet hat — Signal 0 "
+                "entfaellt, kein Fehler.\n"
+            )
     return dest, treffer, dateien
 
 
 def _selftest():
     import pymupdf as fitz
+
     tmp = os.environ.get("TEMP", ".") + "/annots_selftest.pdf"
     doc = fitz.open()
-    for _ in range(3):                               # 3 Seiten mit gleicher Fusszeile
+    for _ in range(3):  # 3 Seiten mit gleicher Fusszeile
         p = doc.new_page()
-        p.draw_line((40, 560), (550, 560))           # Master -> darf keine Grafik sein
+        p.draw_line((40, 560), (550, 560))  # Master -> darf keine Grafik sein
     p = doc[0]
     p.insert_text((72, 100), "Hamming-Distanz zaehlt Positionen")
     # Beschriftung NEBEN der Grafik (gleiche Hoehe) und ein Absatz DARUNTER.
     p.insert_text((360, 250), "Schritt 1: neben dem Kreis")
     p.insert_text((72, 420), "Absatz weit unter der Grafik")
     p.add_highlight_annot(p.search_for("Hamming-Distanz")[0])
-    p.draw_circle((200, 250), 40)                    # echter Inhalt, nur auf Seite 1
+    p.draw_circle((200, 250), 40)  # echter Inhalt, nur auf Seite 1
     p.add_rect_annot(fitz.Rect(72, 200, 520, 340))
     doc[1].insert_text((72, 100), "Nur Text, kein Bild")
     doc[1].add_rect_annot(fitz.Rect(60, 80, 400, 120))
@@ -320,8 +369,10 @@ def _selftest():
     assert ohne["grafik"] == 0 and "Nur Text" in ohne["text"], ohne
 
     os.remove(tmp)
-    print(f"selftest ok - {len(marks)} Markierungen, crop={mit['crop']}, "
-          f"mit Beschriftung={ct}, Text-Kasten grafik={ohne['grafik']}")
+    print(
+        f"selftest ok - {len(marks)} Markierungen, crop={mit['crop']}, "
+        f"mit Beschriftung={ct}, Text-Kasten grafik={ohne['grafik']}"
+    )
 
 
 def main(fach=None, pdf=None, out=None):

@@ -26,18 +26,19 @@ Die Befunde, alle an echten Faellen aus Vorlesungen/GenAi kalibriert:
 Ein Befund ist kein Beweis. Ein Diagramm mit Rahmen loest ANGESCHN aus, ein
 bewusst schmaler Bildstreifen SCHLITZ. Das Skript zeigt, wo man hinsehen muss.
 """
+
 import io
 import os
 import sys
 
 from PIL import Image
 
-MIN_KANTE = 120      # px; darunter ist es ein Fragment, keine Aussage
-MIN_STRICH = 6       # px; duenner ist die Tinte eine Linie, kein Inhalt
-MAX_RATIO = 8.0      # Breite/Hoehe oder umgekehrt
-KANTE_PX = 2         # Streifenbreite, in der auf Anschnitt geprueft wird
+MIN_KANTE = 120  # px; darunter ist es ein Fragment, keine Aussage
+MIN_STRICH = 6  # px; duenner ist die Tinte eine Linie, kein Inhalt
+MAX_RATIO = 8.0  # Breite/Hoehe oder umgekehrt
+KANTE_PX = 2  # Streifenbreite, in der auf Anschnitt geprueft wird
 KANTE_ANTEIL = 0.06  # so viel Tinte in der Kante = angeschnitten
-HELL = 235           # ab hier gilt ein Pixel als Hintergrund
+HELL = 235  # ab hier gilt ein Pixel als Hintergrund
 
 
 def _tinte(bild, box=None):
@@ -65,28 +66,52 @@ def befunde(pfad, streng=False):
     if min(iw, ih) < MIN_STRICH:
         # Genau der Fall VL05-05: die Tinte liegt in 3 von 24 Zeilen, ueber die
         # volle Breite. Das ist eine Linie — der Rahmen der Markierung, kein Inhalt.
-        out.append(("LEER", f"Inhalt nur {iw}x{ih} px hoch/breit — eine Linie, "
-                            f"vermutlich nur der Rahmen der Markierung"))
-        return out                      # alles andere ist dann bedeutungslos
+        out.append(
+            (
+                "LEER",
+                f"Inhalt nur {iw}x{ih} px hoch/breit — eine Linie, "
+                f"vermutlich nur der Rahmen der Markierung",
+            )
+        )
+        return out  # alles andere ist dann bedeutungslos
 
     if min(w, h) < MIN_KANTE:
-        out.append(("WINZIG", f"{w}x{h} px — als eigenes Bild zu klein, gehoert "
-                              f"vermutlich in seinen Satz zurueck"))
+        out.append(
+            (
+                "WINZIG",
+                f"{w}x{h} px — als eigenes Bild zu klein, gehoert "
+                f"vermutlich in seinen Satz zurueck",
+            )
+        )
     r = max(w / h, h / w)
     if r > MAX_RATIO:
-        out.append(("SCHLITZ", f"Seitenverhaeltnis {r:.0f}:1 — ein Streifen ist "
-                               f"selten eine abgeschlossene Aussage"))
+        out.append(
+            (
+                "SCHLITZ",
+                f"Seitenverhaeltnis {r:.0f}:1 — ein Streifen ist "
+                f"selten eine abgeschlossene Aussage",
+            )
+        )
 
     k = min(KANTE_PX, w, h)
-    seiten = {"links": (0, 0, k, h), "rechts": (w - k, 0, w, h),
-              "oben": (0, 0, w, k), "unten": (0, h - k, w, h)}
+    seiten = {
+        "links": (0, 0, k, h),
+        "rechts": (w - k, 0, w, h),
+        "oben": (0, 0, w, k),
+        "unten": (0, h - k, w, h),
+    }
     warm = [s for s, box in seiten.items() if _tinte(im, box) > KANTE_ANTEIL]
     if streng and warm and len(warm) < 4:
         # Nur mit --streng: mit --pad 0 beruehrt Inhalt die Kante voellig normal,
         # weil der Crop genau am Markierungsrechteck sitzt. Ob wirklich ein Satz
         # zerschnitten wurde, weiss nur das PDF — render_crop.py prueft das exakt.
-        out.append(("KANTE", f"Tinte in der Kante {', '.join(warm)} — falls dort "
-                             f"Text steht, geht er ausserhalb weiter"))
+        out.append(
+            (
+                "KANTE",
+                f"Tinte in der Kante {', '.join(warm)} — falls dort "
+                f"Text steht, geht er ausserhalb weiter",
+            )
+        )
     return out
 
 
@@ -106,17 +131,20 @@ def main(ordner, streng=False):
             print(f"  {kuerzel:9} {text}")
     print(f"\n{treffer} von {len(bilder)} Bildern auffaellig.")
     if treffer:
-        print("Ansehen, nicht blind loeschen — ein Rahmen oder ein bewusst "
-              "schmaler Bildstreifen loest die Pruefung auch aus.")
+        print(
+            "Ansehen, nicht blind loeschen — ein Rahmen oder ein bewusst "
+            "schmaler Bildstreifen loest die Pruefung auch aus."
+        )
 
 
 def _selftest():
     from PIL import ImageDraw
+
     tmp = os.path.join(os.environ.get("TEMP", "."), "crop_selftest")
     os.makedirs(tmp, exist_ok=True)
 
     leer = Image.new("L", (400, 30), 255)
-    ImageDraw.Draw(leer).line((0, 29, 400, 29), fill=0)     # nur ein Strich
+    ImageDraw.Draw(leer).line((0, 29, 400, 29), fill=0)  # nur ein Strich
     leer.save(f"{tmp}/leer.png")
 
     winzig = Image.new("L", (140, 40), 255)
@@ -139,6 +167,7 @@ def _selftest():
     assert "KANTE" in [x[0] for x in befunde(f"{tmp}/schnitt.png", streng=True)]
 
     import shutil
+
     shutil.rmtree(tmp, ignore_errors=True)
     print("selftest ok - LEER, WINZIG erkannt, KANTE nur mit --streng, sauberes Bild still")
 

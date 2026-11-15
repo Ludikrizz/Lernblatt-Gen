@@ -12,15 +12,16 @@ Bounding-Box je Zeile. Daraus folgen die zwei Qualitaets-Hebel:
 
 Selbsttest:  python slides.py --selftest
 """
+
 import pymupdf
 
 # find_tables() empfiehlt sonst in jedem Lauf das Zusatzpaket pymupdf_layout.
 # Auf Folien nuetzt das nichts, siehe docs/research-visuelle-elemente.md.
 pymupdf.no_recommend_layout()
 
-TOP = 0.35        # Titel steht im oberen Drittel der Folie
-SIZE_TOL = 0.6    # pt Toleranz, damit mehrzeilige Titel zusammenbleiben
-GAP = 2.2         # Zeilenabstand > GAP * Schriftgroesse => nicht mehr Titel
+TOP = 0.35  # Titel steht im oberen Drittel der Folie
+SIZE_TOL = 0.6  # pt Toleranz, damit mehrzeilige Titel zusammenbleiben
+GAP = 2.2  # Zeilenabstand > GAP * Schriftgroesse => nicht mehr Titel
 
 
 def _lines(page):
@@ -45,7 +46,7 @@ def title_band(page):
     mx = max(l[0] for l in pool)
     cand = sorted([l for l in pool if l[0] >= mx - SIZE_TOL], key=lambda l: (l[1][1], l[1][0]))
     band, last = [], None
-    for c in cand:                      # mehrzeilige Titel ja, Seitenmitte nein
+    for c in cand:  # mehrzeilige Titel ja, Seitenmitte nein
         if last is not None and c[1][1] - last > mx * GAP:
             break
         band.append(c)
@@ -80,11 +81,11 @@ def content_rect(page, cut_title=True, pad=6):
         for l in band:
             br |= pymupdf.Rect(l[1])
     r = pymupdf.Rect()
-    for b in page.get_text("dict")["blocks"]:              # Text UND Bilder
+    for b in page.get_text("dict")["blocks"]:  # Text UND Bilder
         bb = pymupdf.Rect(b["bbox"])
-        if bb.get_area() >= full or _is_pagenum(b, pr):    # Hintergrundbild, Seitenzahl
+        if bb.get_area() >= full or _is_pagenum(b, pr):  # Hintergrundbild, Seitenzahl
             continue
-        if not br.is_empty and bb in br + (-1, -1, 1, 1):   # Titelzeile
+        if not br.is_empty and bb in br + (-1, -1, 1, 1):  # Titelzeile
             continue
         r |= bb
     for d in page.get_drawings():
@@ -94,22 +95,28 @@ def content_rect(page, cut_title=True, pad=6):
         if d.get("fill") == (1.0, 1.0, 1.0) and d.get("color") is None:
             continue
         r |= bb
-    if r.is_empty:                                         # z.B. reine Titelfolie
+    if r.is_empty:  # z.B. reine Titelfolie
         return pr if not cut_title else content_rect(page, False, pad)
     if not br.is_empty and r.intersects(br):
-        r |= br              # Titel ganz drin statt halb angeschnitten
-    return pymupdf.Rect(max(pr.x0, r.x0 - pad), max(pr.y0, r.y0 - pad),
-                        min(pr.x1, r.x1 + pad), min(pr.y1, r.y1 + pad))
+        r |= br  # Titel ganz drin statt halb angeschnitten
+    return pymupdf.Rect(
+        max(pr.x0, r.x0 - pad),
+        max(pr.y0, r.y0 - pad),
+        min(pr.x1, r.x1 + pad),
+        min(pr.y1, r.y1 + pad),
+    )
 
 
 def _is_chrome(r, pr):
     """Folien-Chrome: Titelband/Fusszeile ueber die volle Breite, oder ein
     kleines Objekt in einer oberen Ecke (Uni-Logo)."""
-    if r.width > pr.width * 0.9 and (r.y0 < pr.height * 0.02
-                                     or r.y1 > pr.height * 0.98):
+    if r.width > pr.width * 0.9 and (r.y0 < pr.height * 0.02 or r.y1 > pr.height * 0.98):
         return True
-    return (r.get_area() < pr.get_area() * 0.03 and r.y1 < pr.height * 0.2
-            and (r.x0 > pr.width * 0.8 or r.x1 < pr.width * 0.2))
+    return (
+        r.get_area() < pr.get_area() * 0.03
+        and r.y1 < pr.height * 0.2
+        and (r.x0 > pr.width * 0.8 or r.x1 < pr.width * 0.2)
+    )
 
 
 def figures(page, tol=25, snap=8, min_area=0.03, max_label=0.04):
@@ -129,7 +136,7 @@ def figures(page, tol=25, snap=8, min_area=0.03, max_label=0.04):
     voll, klein = pr.get_area() * 0.85, pr.get_area() * min_area
     out = []
 
-    for t in page.find_tables().tables:                  # Tabellen zuerst
+    for t in page.find_tables().tables:  # Tabellen zuerst
         r = pymupdf.Rect(t.bbox)
         if t.row_count > 1 and t.col_count > 1 and voll > r.get_area() > klein:
             out.append(("tabelle", r))
@@ -137,17 +144,18 @@ def figures(page, tol=25, snap=8, min_area=0.03, max_label=0.04):
     # Vollflaechen-Hintergrund VOR dem Clustern raus, sonst klebt die ganze
     # Seite zu einem Cluster zusammen (gemessen an den POIS-Folien).
     dr = [d for d in page.get_drawings() if d["rect"].get_area() < voll]
-    labels = [pymupdf.Rect(b["bbox"]) for b in page.get_text("dict")["blocks"]
-              if b["type"] == 0
-              and pymupdf.Rect(b["bbox"]).get_area() < pr.get_area() * max_label]
+    labels = [
+        pymupdf.Rect(b["bbox"])
+        for b in page.get_text("dict")["blocks"]
+        if b["type"] == 0 and pymupdf.Rect(b["bbox"]).get_area() < pr.get_area() * max_label
+    ]
     for r in page.cluster_drawings(drawings=dr, x_tolerance=tol, y_tolerance=tol):
         if not (voll > r.get_area() > klein) or _is_chrome(r, pr):
             continue
-        if any(r.intersects(t) and t.get_area() > r.get_area() * 0.7
-               for _, t in out):
-            continue                                     # schon als Tabelle drin
+        if any(r.intersects(t) and t.get_area() > r.get_area() * 0.7 for _, t in out):
+            continue  # schon als Tabelle drin
         g = pymupdf.Rect(r)
-        for lb in labels:                                # Beschriftung mitnehmen
+        for lb in labels:  # Beschriftung mitnehmen
             if lb.intersects(r + (-snap, -snap, snap, snap)):
                 g |= lb
         out.append(("vektor", g))
@@ -157,7 +165,7 @@ def figures(page, tol=25, snap=8, min_area=0.03, max_label=0.04):
             if voll > r.get_area() > klein and not _is_chrome(r, pr):
                 out.append(("raster", r))
 
-    return [(art, r & pr) for art, r in out]     # nie ueber die Seite hinaus
+    return [(art, r & pr) for art, r in out]  # nie ueber die Seite hinaus
 
 
 def title_cut(page):
@@ -221,8 +229,11 @@ def _testdeck():
 
     folie("Einfuehrung", ["Erster Punkt"], 1)
     folie("Einfuehrung", ["Erster Punkt", "Zweiter Punkt"], 2)
-    folie("RDF als Grundlage", ["Tripel aus Subjekt, Praedikat, Objekt",
-                                "Ressourcen werden per URI benannt"], 3)
+    folie(
+        "RDF als Grundlage",
+        ["Tripel aus Subjekt, Praedikat, Objekt", "Ressourcen werden per URI benannt"],
+        3,
+    )
 
     p = folie("Graph-Modell", ["Knoten und Kanten"], 4)
     for c in [(260, 300), (460, 300), (360, 420)]:
@@ -255,14 +266,14 @@ def _selftest():
     assert len(blocks) == 4, blocks
     assert blocks[-1][2] == blocks[-1][1][-1], "finale Stufe ist die letzte Seite"
 
-    fig = figures(doc[3])                       # Vektordiagramm
+    fig = figures(doc[3])  # Vektordiagramm
     assert [a for a, _ in fig] == ["vektor"], fig
-    assert fig[0][1].get_area() < content_rect(doc[3]).get_area(), \
+    assert fig[0][1].get_area() < content_rect(doc[3]).get_area(), (
         "Figur muss enger sein als die ganze Inhalts-Box"
+    )
     assert figures(doc[4]) and figures(doc[4])[0][0] == "raster", figures(doc[4])
     assert not figures(doc[2]), f"Textfolie ohne Figur: {figures(doc[2])}"
-    assert all(r in p.rect for p in doc for _, r in figures(p)), \
-        "Figur ragt ueber die Seite hinaus"
+    assert all(r in p.rect for p in doc for _, r in figures(p)), "Figur ragt ueber die Seite hinaus"
     n = doc.page_count
     doc.close()
     print(f"selftest ok - {len(blocks)} Themen aus {n} Seiten")
@@ -270,6 +281,7 @@ def _selftest():
 
 if __name__ == "__main__":
     import sys
+
     if "--selftest" in sys.argv:
         _selftest()
     else:
