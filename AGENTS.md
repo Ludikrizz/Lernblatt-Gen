@@ -162,6 +162,19 @@ python .claude/skills/lernblatt-generator/scripts/render_crop.py \
   --pages 1,2 --out "Vorlesungen/<Fach>/Lernblaetter/bilder" --prefix VL01
 ```
 
+## Zusammenarbeit
+
+`main` ist geschützt. Direkte Pushes sind gesperrt.
+
+1. Erstelle einen Branch: `git switch -c <name>/<thema>`.
+2. Pushe den Branch und öffne einen Pull Request.
+3. Warte, bis der CI-Check `checks` grün ist.
+4. Lass den Pull Request von 1 Teammitglied freigeben.
+5. Merge mit „Squash and merge“.
+
+Der CI-Check prüft: kein Kursmaterial im Commit, keine festen Projektpfade,
+Spiegelung `.claude/` und `.pi/`, Lint, Kompilieren und die Selbsttests.
+
 ## Änderungen
 
 Ändere Build- und Kapitelquellen, nicht generierte HTML-Dateien. Halte relative

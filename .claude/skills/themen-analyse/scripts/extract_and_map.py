@@ -22,7 +22,7 @@ import pdf_inspector as pi
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from pfade import ROOT, cache, pdfs, prefix_fuer_datei, quellen
+from pfade import cache, prefix_fuer_datei, quellen
 
 SIZE_TOL = 0.6    # pt Toleranz, damit mehrzeilige Titel zusammenbleiben
 GAP = 2.2         # Zeilenabstand > GAP * Schriftgroesse => nicht mehr Titel
