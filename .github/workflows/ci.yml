@@ -73,13 +73,6 @@ jobs:
       - name: Kompilieren
         run: uv run python -m compileall -q .claude .pi
 
-      # 5. Selbsttests aus AGENTS.md (laufen ohne Kursmaterial).
-      - name: Selbsttests
-        run: |
-          s=.claude/skills
-          uv run python $s/lernblatt-generator/scripts/lernblatt_html.py --selftest
-          uv run python $s/lernblatt-generator/scripts/slides.py --selftest
-          uv run python $s/lernblatt-generator/scripts/check_crops.py --selftest
-          uv run python $s/themen-analyse/scripts/extract_and_map.py --selftest
-          uv run python $s/themen-analyse/scripts/annots.py --selftest
-          uv run python $s/themen-analyse/scripts/graph.py --selftest
+      # 5. Selbsttests aller Skripte (laufen ohne Kursmaterial), siehe tests/.
+      - name: Tests
+        run: uv run pytest -v

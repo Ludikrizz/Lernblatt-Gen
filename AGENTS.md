@@ -89,12 +89,13 @@ eingebettet.
 
 ## Prüfungen
 
-Es gibt keinen `pytest`-Lauf. Nutze Ruff und die vorhandenen Selbsttests und
-Artefaktprüfungen:
+`uv run pytest` führt alle Selbsttests aus. Einzeln laufen sie mit `--selftest`.
+Dazu kommen Ruff und die Artefaktprüfungen:
 
 ```bash
 uv run ruff check .
 uv run ruff format --check .
+uv run pytest                  # alle Selbsttests aus tests/
 uv run python -m py_compile "_derived/<Fach>/build/build_lernblatt.py" "_derived/<Fach>/build/chapters/"*.py
 uv run python .claude/skills/lernblatt-generator/scripts/lernblatt_html.py --selftest
 uv run python .claude/skills/lernblatt-generator/scripts/slides.py --selftest
@@ -184,8 +185,8 @@ uv run python .claude/skills/lernblatt-generator/scripts/render_crop.py \
 5. Merge mit „Squash and merge“.
 
 Der CI-Check prüft: kein Kursmaterial im Commit, keine festen Projektpfade,
-Spiegelung `.claude/` und `.pi/`, Ruff (Lint und Format), Kompilieren und die
-Selbsttests. Vor dem Push lokal: `uv run ruff format .` und `uv run ruff check --fix .`.
+Spiegelung `.claude/` und `.pi/`, Ruff (Lint und Format), Kompilieren und
+`pytest`. Vor dem Push lokal: `uv run ruff format .` und `uv run ruff check --fix .`.
 
 ## Änderungen
 
