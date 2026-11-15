@@ -147,7 +147,7 @@ Animations-Bau-Stufe (`final pN` in
 `slide_titles.txt`, dort auch `*` = Folie mit Grafik). Rendern + croppen in einem
 Aufruf:
 ```bash
-python .claude/skills/lernblatt-generator/scripts/render_crop.py \
+uv run python .claude/skills/lernblatt-generator/scripts/render_crop.py \
   --pdf "Examples/<Fach>/Vorlesungsfolien/<Deck>.pdf" \
   --pages 11,19,20 --out "<Ausgabeordner>/bilder" --prefix VLxx
 ```
@@ -175,7 +175,7 @@ Fehlschnitte samt Gegenmaßnahmen stehen in `docs/bild-zuschnitt.md`.
   ganzen Block ziehen und neu rendern.
 - Am Ende einmal über den Ordner:
   ```bash
-  python .claude/skills/lernblatt-generator/scripts/check_crops.py "<Ausgabeordner>/bilder"
+  uv run python .claude/skills/lernblatt-generator/scripts/check_crops.py "<Ausgabeordner>/bilder"
   ```
   Findet leere, winzige und schlitzförmige Bilder in einer Sekunde. Ein Befund
   heißt hinsehen, nicht löschen.
@@ -214,7 +214,7 @@ Lösung** — wie im Beispiel-Lernblatt. Lösungswerte aus der Klausur-Zusammenf
 nehmen und **selbst mathematisch prüfen** (Ground Truth). Dann in den Screenshot
 schreiben:
 ```bash
-python .claude/skills/lernblatt-generator/scripts/annotate.py \
+uv run python .claude/skills/lernblatt-generator/scripts/annotate.py \
   --img "<Ausgabeordner>/bilder/VLxx-17.png" \
   --out "<Ausgabeordner>/bilder/VLxx-17_annot.png" \
   --ann '[{"type":"text","x":985,"y":625,"val":"2","color":"red"},
@@ -234,17 +234,20 @@ Vorlesung (`# --- Deck 07: OpenRefine`), damit die Einfügestelle beim Erweitern
 ohne Suchen zu finden ist.
 
 ```python
-import sys; sys.path.insert(0, ".claude/skills/lernblatt-generator/scripts")
+import sys
+
+sys.path.insert(0, ".claude/skills/lernblatt-generator/scripts")
 from lernblatt_html import LernblattHTML
+
 lb = LernblattHTML("Lernblatt <Fach>", img_dir="<Ausgabeordner>/bilder")
-lb.h_deck("03 LOD2 SPARQL")                 # Foliensatz-Trenner
-lb.h_topic("RDF als Grundlage")             # Folientitel 1:1
+lb.h_deck("03 LOD2 SPARQL")  # Foliensatz-Trenner
+lb.h_topic("RDF als Grundlage")  # Folientitel 1:1
 lb.kern("RDF beschreibt Daten als Tripel Subjekt – Prädikat – Objekt.")
 lb.formel("<mrow><mi>x</mi><mo>=</mo><mn>1</mn></mrow>", "x gleich 1")
 lb.sublabel("RDF-Datenmodell:")
 lb.glossar("resource", "alles Benennbare, per URI identifiziert.")
 lb.bullet("offenes Format (CSV statt Excel).", color="red")
-lb.pic("VL03-11.png", anteil=0.62)          # so breit wie auf der Folie
+lb.pic("VL03-11.png", anteil=0.62)  # so breit wie auf der Folie
 lb.tabelle(["Verfahren", "Paradigma"], [["Klassifikation", "überwacht"]])
 lb.akzent("Klausur-Aufgabe: ...")
 lb.save("Examples/<Fach>/Lernblaetter/Lernblatt_<Fach>.html")

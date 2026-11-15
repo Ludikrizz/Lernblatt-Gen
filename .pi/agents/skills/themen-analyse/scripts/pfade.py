@@ -12,6 +12,7 @@ _derived/<Fach>/ hat vier klar getrennte Bereiche:
 Gerenderte Bilder liegen NICHT hier, sondern neben dem Lernblatt
 (<Ausgabeordner>/bilder/). Sie gehoeren zum Artefakt und sollen mit ihm umziehen.
 """
+
 import os
 
 
@@ -27,8 +28,10 @@ def _projektwurzel():
             return d.replace("\\", "/")
         oben = os.path.dirname(d)
         if oben == d:
-            raise RuntimeError("Projektwurzel nicht gefunden (keine AGENTS.md "
-                               "ueber diesem Skript). LERNBLATT_ROOT setzen.")
+            raise RuntimeError(
+                "Projektwurzel nicht gefunden (keine AGENTS.md "
+                "ueber diesem Skript). LERNBLATT_ROOT setzen."
+            )
         d = oben
 
 
@@ -74,15 +77,17 @@ def quellen(fach):
         unter = []
         for u, p in UNTER:
             kandidaten = namen.get(u, (u,))
-            gefunden = next((f"{root}/{name}" for name in kandidaten
-                             if os.path.isdir(f"{root}/{name}")), None)
+            gefunden = next(
+                (f"{root}/{name}" for name in kandidaten if os.path.isdir(f"{root}/{name}")), None
+            )
             if gefunden:
                 unter.append((gefunden, p))
         if unter:
             return unter
         if root == lauf and any(
-                os.path.isfile(f"{root}/{name}") and name.lower().endswith(".pdf")
-                for name in os.listdir(root)):
+            os.path.isfile(f"{root}/{name}") and name.lower().endswith(".pdf")
+            for name in os.listdir(root)
+        ):
             return [(root, "VL")]
     return []
 
@@ -99,8 +104,7 @@ def pdfs(fach):
 
 def _selftest():
     assert cache("X", "text", "a.md").endswith("_derived/X/cache/text/a.md")
-    assert fest("X", "planung", "terms.txt").endswith(
-        "_derived/X/planung/terms.txt")
+    assert fest("X", "planung", "terms.txt").endswith("_derived/X/planung/terms.txt")
     assert "cache" not in fest("X", "planung", "terms.txt")
     q = quellen("GenAi")
     assert {"VL", "UE"} <= {prefix for _, prefix in q}, q
@@ -108,9 +112,9 @@ def _selftest():
     n = len(list(pdfs("GenAi")))
     assert n > 0, n
     import shutil
+
     shutil.rmtree(f"{ROOT}/_derived/X", ignore_errors=True)
-    print(f"selftest ok - {n} PDFs in 'GenAi', "
-          "Layout planung/ + analysen/ + build/ + cache/")
+    print(f"selftest ok - {n} PDFs in 'GenAi', Layout planung/ + analysen/ + build/ + cache/")
 
 
 if __name__ == "__main__":

@@ -13,6 +13,7 @@ Zwei Themen auf derselben Seite = eine Kante. Kantengewicht nach Quelle
 (Klausur > Uebung > Folien). Grad = Summe der Kanten eines Themas: viel
 verbunden + klausurnah = wichtig.
 """
+
 import glob
 import io
 import os
@@ -24,13 +25,14 @@ from itertools import combinations
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from pfade import ROOT, cache, fest
+
 # ponytail: Knopf. Klausurnaehe hoeher drehen, wenn die Rangliste zu folienlastig wird.
 GEWICHT = {"KL": 3, "UE": 2, "VL": 1}
-TOP_KANTEN = 4          # je Thema in der Tabelle gezeigte staerkste Nachbarn
+TOP_KANTEN = 4  # je Thema in der Tabelle gezeigte staerkste Nachbarn
 # Eine Seite, die halb so viele Themen nennt, ist ein Inhaltsverzeichnis, keine
 # inhaltliche Kopplung. Sie zaehlt als Treffer, aber erzeugt keine Kanten —
 # sonst verklebt die Themenuebersicht der Klausur alles zu einer Clique.
-MAX_KLIQUE = 12         # ponytail: Knopf, falls echte Uebersichtsfolien wegfallen
+MAX_KLIQUE = 12  # ponytail: Knopf, falls echte Uebersichtsfolien wegfallen
 
 
 def _pat(s):
@@ -94,7 +96,7 @@ def scan(fach, terms):
             treffer[th][src] += 1
             if src != "VL" and len(fund[th]) < 6:
                 fund[th].append(f"{datei} p{nr}")
-        if len(da) > MAX_KLIQUE:            # Uebersichtsseite, keine Kopplung
+        if len(da) > MAX_KLIQUE:  # Uebersichtsseite, keine Kopplung
             index += 1
             continue
         for a, b in combinations(sorted(da), 2):
@@ -119,17 +121,16 @@ def budget(fach, themen_gesamt):
     Ohne eigenes Blatt als Referenz ist die Seitenzahl ~1/10 der Folien-Themen
     (gemessen 7,2 / 12,4 / 12,7 Folien-Themen je Blattseite).
     """
-    treffer = glob.glob(
-        f"{ROOT}/Vorlesungen/{fach}/**/[Ll]ernblatt*.pdf", recursive=True)
+    treffer = glob.glob(f"{ROOT}/Vorlesungen/{fach}/**/[Ll]ernblatt*.pdf", recursive=True)
     if not treffer:
-        treffer = glob.glob(
-            f"{ROOT}/Examples/{fach}/**/[Ll]ernblatt*.pdf", recursive=True)
+        treffer = glob.glob(f"{ROOT}/Examples/{fach}/**/[Ll]ernblatt*.pdf", recursive=True)
     if treffer:
         try:
             import pymupdf
+
             seiten = pymupdf.open(treffer[0]).page_count
             return seiten, round(seiten * 2.5), os.path.basename(treffer[0])
-        except Exception:               # kein fitz oder PDF kaputt -> schaetzen
+        except Exception:  # kein fitz oder PDF kaputt -> schaetzen
             pass
     seiten = max(1, round(themen_gesamt / 10))
     return seiten, round(seiten * 2.5), "geschaetzt, kein eigenes Lernblatt gefunden"
@@ -147,17 +148,23 @@ def write_report(fach, terms, treffer, kanten, fund, stumm):
     zeilen = sorted(terms, key=lambda t: -grad[t[0]])
     dest = cache(fach, "graph.md")
     with open(dest, "w", encoding="utf-8") as fh:
-        fh.write(f"# Themen-Graph {fach}\n\nSeiten-Treffer je Quelle, Grad = Summe "
-                 f"der Kantengewichte (KL{GEWICHT['KL']}/UE{GEWICHT['UE']}/"
-                 f"VL{GEWICHT['VL']} je gemeinsamer Seite).\n\n")
-        fh.write(f"**Umfang:** {gesamt} Folien-Themen · Ziel {seiten} Blattseiten "
-                 f"({quelle}) · **Budget rund {platz} Themen mit Empfehlung `rein`** "
-                 f"(2,5 Themen je Seite). Mehr Themen heisst nicht mehr Punkte — was "
-                 f"ueber dem Budget liegt, kommt auf `optional`.\n\n")
+        fh.write(
+            f"# Themen-Graph {fach}\n\nSeiten-Treffer je Quelle, Grad = Summe "
+            f"der Kantengewichte (KL{GEWICHT['KL']}/UE{GEWICHT['UE']}/"
+            f"VL{GEWICHT['VL']} je gemeinsamer Seite).\n\n"
+        )
+        fh.write(
+            f"**Umfang:** {gesamt} Folien-Themen · Ziel {seiten} Blattseiten "
+            f"({quelle}) · **Budget rund {platz} Themen mit Empfehlung `rein`** "
+            f"(2,5 Themen je Seite). Mehr Themen heisst nicht mehr Punkte — was "
+            f"ueber dem Budget liegt, kommt auf `optional`.\n\n"
+        )
         if stumm:
-            fh.write(f"**WARN stumme Decks** (kein Thema aus `terms.txt` trifft dort): "
-                     f"{', '.join(stumm)}. Entweder fehlen Suchwoerter, oder ein "
-                     f"ganzer Foliensatz fehlt in der Themenliste.\n\n")
+            fh.write(
+                f"**WARN stumme Decks** (kein Thema aus `terms.txt` trifft dort): "
+                f"{', '.join(stumm)}. Entweder fehlen Suchwoerter, oder ein "
+                f"ganzer Foliensatz fehlt in der Themenliste.\n\n"
+            )
         # Nachbarn nur fuer die obere Haelfte. Bei einem Thema mit Grad 2
         # entscheidet Kopplung ohnehin nichts, und die Spalte macht knapp die
         # Haelfte der Datei aus (CyberSec: 11,8 von 25 KB) — die liest das Modell
@@ -167,11 +174,12 @@ def write_report(fach, terms, treffer, kanten, fund, stumm):
         fh.write("|---|---|---|---|---|---|\n")
         for th, _ in zeilen:
             t = treffer[th]
-            top = ", ".join(f"{b} ({w})" for w, b in
-                            sorted(nachbarn[th], reverse=True)[:TOP_KANTEN]) \
-                if grad[th] >= mitte else ""
-            fh.write(f"| {th} | {t['KL']} | {t['UE']} | {t['VL']} | "
-                     f"{grad[th]} | {top} |\n")
+            top = (
+                ", ".join(f"{b} ({w})" for w, b in sorted(nachbarn[th], reverse=True)[:TOP_KANTEN])
+                if grad[th] >= mitte
+                else ""
+            )
+            fh.write(f"| {th} | {t['KL']} | {t['UE']} | {t['VL']} | {grad[th]} | {top} |\n")
         fh.write("\n## Fundstellen in Uebung/Klausur\n")
         for th, _ in zeilen:
             if fund[th]:
@@ -180,8 +188,12 @@ def write_report(fach, terms, treffer, kanten, fund, stumm):
         if leer:
             fh.write("\n## Ohne Treffer (Suchwoerter pruefen oder Ausreisser)\n")
             for th, n in plural_test(fach, terms, leer):
-                hinweis = (f" — **{n} Treffer ohne Wortgrenze**, also Plural oder "
-                           f"Beugung: Suchwort in `terms.txt` erweitern" if n else "")
+                hinweis = (
+                    f" — **{n} Treffer ohne Wortgrenze**, also Plural oder "
+                    f"Beugung: Suchwort in `terms.txt` erweitern"
+                    if n
+                    else ""
+                )
                 fh.write(f"- {th}{hinweis}\n")
     return dest, leer
 
@@ -217,8 +229,10 @@ def init_terms(fach):
             if m and m.group(1) and m.group(1) not in seen:
                 seen.append(m.group(1))
     with open(dest, "w", encoding="utf-8") as fh:
-        fh.write("# Thema: suchwort, suchwort, ...  (Synonyme/Abkuerzungen ergaenzen,\n"
-                 "# aehnliche Titel zu EINEM Thema zusammenfassen, Muell loeschen)\n")
+        fh.write(
+            "# Thema: suchwort, suchwort, ...  (Synonyme/Abkuerzungen ergaenzen,\n"
+            "# aehnliche Titel zu EINEM Thema zusammenfassen, Muell loeschen)\n"
+        )
         fh.write("".join(f"{t}: {t}\n" for t in seen))
     print(f"{dest} mit {len(seen)} Roh-Titeln. Jetzt verdichten und Suchwoerter setzen.")
 
@@ -226,7 +240,7 @@ def init_terms(fach):
 def main(fach):
     tp = fest(fach, "planung", "terms.txt")
     if not os.path.exists(tp):
-        sys.exit(f"FEHLER: {tp} fehlt. Erst: graph.py \"{fach}\" --init")
+        sys.exit(f'FEHLER: {tp} fehlt. Erst: graph.py "{fach}" --init')
     terms = load_terms(tp)
     treffer, kanten, fund, index, stumm = scan(fach, terms)
     dest, leer = write_report(fach, terms, treffer, kanten, fund, stumm)
@@ -243,22 +257,26 @@ def main(fach):
 def _selftest():
     assert _pat("RDF").search("das RDF-Modell") and not _pat("RDF").search("RDFS")
     assert _pat("select ?").search("SELECT ?x WHERE")
-    assert not _pat("swimlane").search("die Swimlanes")      # Wortgrenze greift
+    assert not _pat("swimlane").search("die Swimlanes")  # Wortgrenze greift
     assert _ohne_grenze(_pat("swimlane")).search("die Swimlanes")
-    assert split_pages("x\n<!-- Seite 3 -->\nA\n<!-- Seite 4 -->\nB") == \
-        [(3, "\nA\n"), (4, "\nB")]
+    assert split_pages("x\n<!-- Seite 3 -->\nA\n<!-- Seite 4 -->\nB") == [(3, "\nA\n"), (4, "\nB")]
     assert budget("Fach ohne Beispiel", 400)[:2] == (40, 100)
     fach = "Datascience 1"
     if os.path.isdir(cache(fach, "text")):
-        terms = [("SPARQL", [_pat("sparql")]), ("RDF", [_pat("rdf")]),
-                 ("OpenRefine", [_pat("openrefine")])]
+        terms = [
+            ("SPARQL", [_pat("sparql")]),
+            ("RDF", [_pat("rdf")]),
+            ("OpenRefine", [_pat("openrefine")]),
+        ]
         tr, kn, _, _, _ = scan(fach, terms)
         assert tr["SPARQL"]["VL"] > 5, tr["SPARQL"]
         assert tr["SPARQL"]["KL"] > 0, "SPARQL muss in der Klausur vorkommen"
-        assert kn[("RDF", "SPARQL")] > kn.get(("OpenRefine", "SPARQL"), 0), \
+        assert kn[("RDF", "SPARQL")] > kn.get(("OpenRefine", "SPARQL"), 0), (
             "RDF muss staerker an SPARQL haengen als OpenRefine"
-        print(f"selftest ok - SPARQL {dict(tr['SPARQL'])}, "
-              f"Kante RDF-SPARQL {kn[('RDF', 'SPARQL')]}")
+        )
+        print(
+            f"selftest ok - SPARQL {dict(tr['SPARQL'])}, Kante RDF-SPARQL {kn[('RDF', 'SPARQL')]}"
+        )
     else:
         print("selftest ok (ohne Fach-Daten)")
 

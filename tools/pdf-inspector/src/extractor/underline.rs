@@ -70,6 +70,9 @@ struct Rule {
     x1: f32,
     x2: f32,
     y: f32,
+    /// Kept by the repeated-ruling filter only because it snugly strikes
+    /// through one row. Its strikes are emitted but are not layout evidence.
+    strike_rescued: bool,
 }
 
 impl Rule {
@@ -96,6 +99,7 @@ fn rules_from_graphics(rects: &[PdfRect], lines: &[UnderlineLine], page: u32) ->
                     x1,
                     x2,
                     y: (l.y1 + l.y2) / 2.0,
+                    strike_rescued: false,
                 });
             }
         }
@@ -119,6 +123,7 @@ fn rules_from_graphics(rects: &[PdfRect], lines: &[UnderlineLine], page: u32) ->
                 x1,
                 x2,
                 y: r.y + r.height / 2.0,
+                strike_rescued: false,
             });
         }
     }
@@ -138,7 +143,18 @@ fn discard_repeated_ruling_rules(
 
     rules
         .iter()
-        .filter(|rule| {
+        // Only a rule that could decorate some text item can change the
+        // result: every use of the kept rules downstream tests them against
+        // the page's items (underline window, strike band, tabular and
+        // fraction checks), never against each other. A page drawn from
+        // vector art can carry a hundred thousand thin rects and only a
+        // few dozen text items; the checks below compare each rule with
+        // every other, so running them on rules that touch no text cost
+        // minutes of CPU while deciding nothing. All rules stay the context
+        // those checks compare against, so a rule near text is judged
+        // exactly as before.
+        .filter(|rule| may_decorate_text(rule, items))
+        .filter_map(|rule| {
             // A rule snugly owned by one text line is an underline even when
             // span-similar rules repeat down the page — documents that
             // underline many full-width lines (dense CJK business docs) look
@@ -150,13 +166,39 @@ fn discard_repeated_ruling_rules(
             // Same-row segmented rules (column-header separators) are
             // always rulings — each segment snugly owns its column label,
             // so snugness must not override that check.
-            !is_segmented_row_ruling_rule(rule, &rules)
-                && ((has_snug_text_owner(rule, items)
-                    && !has_flanking_verticals(rule, rects, lines, page))
-                    || !is_repeated_ruling_rule(rule, &rules))
+            if is_segmented_row_ruling_rule(rule, &rules) {
+                return None;
+            }
+            if !is_repeated_ruling_rule(rule, &rules) {
+                return Some(rule.clone());
+            }
+            if has_flanking_verticals(rule, rects, lines, page) {
+                return None;
+            }
+            // Redlines strike several whole lines of similar width, which the
+            // repetition check reads the same way; a rule that snugly strikes
+            // through one row is kept as a strikethrough.
+            if has_snug_owner_row(rule, items, rule_matches_item) {
+                Some(rule.clone())
+            } else if has_snug_owner_row(rule, items, rule_strikes_item) {
+                Some(Rule {
+                    strike_rescued: true,
+                    ..rule.clone()
+                })
+            } else {
+                None
+            }
         })
-        .cloned()
         .collect()
+}
+
+/// True when the rule falls in the underline window or the strike band of
+/// at least one text item that can carry a decoration.
+fn may_decorate_text(rule: &Rule, items: &[TextItem]) -> bool {
+    items.iter().any(|item| {
+        is_underline_candidate(item)
+            && (rule_matches_item(rule, item) || rule_strikes_item(rule, item))
+    })
 }
 
 /// True when a single text item both matches the rule vertically (baseline
@@ -236,16 +278,20 @@ fn has_flanking_verticals(
     })
 }
 
-fn has_snug_text_owner(rule: &Rule, items: &[TextItem]) -> bool {
-    // Underlines are drawn to the width of the text they decorate, but the
-    // text may be split into several runs (CJK lines mix scripts and font
-    // switches) — so ownership is judged against the UNION of the runs on
-    // the rule's baseline row. Table/form rulings overshoot their row's
-    // text (row separators span cell padding and empty columns), so they
-    // fail either containment or coverage.
+fn has_snug_owner_row(
+    rule: &Rule,
+    items: &[TextItem],
+    decorates: fn(&Rule, &TextItem) -> bool,
+) -> bool {
+    // Underlines and strikethroughs are drawn to the width of the text they
+    // decorate, but the text may be split into several runs (CJK lines mix
+    // scripts and font switches) — so ownership is judged against the UNION
+    // of the runs the rule decorates. Table/form rulings overshoot their
+    // row's text (row separators span cell padding and empty columns), so
+    // they fail either containment or coverage.
     let matched: Vec<&TextItem> = items
         .iter()
-        .filter(|item| is_underline_candidate(item) && rule_matches_item(rule, item))
+        .filter(|item| is_underline_candidate(item) && decorates(rule, item))
         .collect();
     if matched.is_empty() {
         return false;
@@ -356,7 +402,52 @@ fn tabular_row_separator_rule_indices(rules: &[Rule], items: &[TextItem]) -> Has
 }
 
 fn is_underline_candidate(item: &TextItem) -> bool {
-    matches!(item.item_type, ItemType::Text) && !item.text.trim().is_empty() && item.width > 0.0
+    // Rule geometry below assumes a horizontal baseline: a vertical run's
+    // box bottom is a run end, not a baseline, and a table border under a
+    // rotated header would otherwise read as an underline. Level runs qualify
+    // — upright or upside-down, within a scan's few degrees of skew — and
+    // `baseline_and_up` tells the windows where each one's baseline is and
+    // which way its glyphs rise; an oblique callout has no horizontal rule.
+    // An estimated box (font without widths) says nothing about where the
+    // glyphs end, so it cannot own a rule either — as when it was zero-width.
+    matches!(item.item_type, ItemType::Text)
+        && !item.text.trim().is_empty()
+        && item.width > 0.0
+        && item.advance_known
+        && has_level_baseline(item)
+}
+
+/// Decoration rules are horizontal, so only a run whose baseline is level
+/// can own one: upright or upside-down, allowing the few degrees of skew a
+/// scanned page's text layer carries.
+fn has_level_baseline(item: &TextItem) -> bool {
+    const SKEW_TOLERANCE_DEG: f32 = 5.0;
+    let r = item.rotation;
+    r <= SKEW_TOLERANCE_DEG
+        || r >= 360.0 - SKEW_TOLERANCE_DEG
+        || (r - 180.0).abs() <= SKEW_TOLERANCE_DEG
+}
+
+/// Baseline of a horizontal run and the page-y direction its glyphs rise
+/// in: an upright run sits on `y` and rises towards +y; a 180° run hangs
+/// from its box top, `y + height`, and rises towards -y.
+fn baseline_and_up(item: &TextItem) -> (f32, f32) {
+    if item.is_upside_down() {
+        (item.y + item.height, -1.0)
+    } else {
+        (item.y, 1.0)
+    }
+}
+
+/// True when `rule_y` lies between `lo` and `hi` points from the item's
+/// baseline, measured in the direction its glyphs rise — so a negative
+/// offset is on the far side of the baseline from the glyphs, whichever
+/// way they face.
+fn rule_in_glyph_band(rule_y: f32, item: &TextItem, lo: f32, hi: f32) -> bool {
+    let (base, up) = baseline_and_up(item);
+    let a = base + up * lo;
+    let b = base + up * hi;
+    rule_y >= a.min(b) && rule_y <= a.max(b)
 }
 
 fn rule_matches_item(rule: &Rule, item: &TextItem) -> bool {
@@ -366,9 +457,7 @@ fn rule_matches_item(rule: &Rule, item: &TextItem) -> bool {
     // baseline (text_dense__underline). Allow 0.72em (min 3pt) below and
     // 1pt above for rounding.
     let below = (item.font_size * 0.72).max(3.0);
-    let y_min = item.y - below;
-    let y_max = item.y + 1.0;
-    if rule.y < y_min || rule.y > y_max {
+    if !rule_in_glyph_band(rule.y, item, -below, 1.0) {
         return false;
     }
 
@@ -384,9 +473,7 @@ fn rule_matches_item(rule: &Rule, item: &TextItem) -> bool {
 /// accept a band well inside the glyph body so baseline underlines and
 /// overlines never qualify.
 fn rule_strikes_item(rule: &Rule, item: &TextItem) -> bool {
-    let y_min = item.y + item.font_size * 0.12;
-    let y_max = item.y + item.font_size * 0.55;
-    if rule.y < y_min || rule.y > y_max {
+    if !rule_in_glyph_band(rule.y, item, item.font_size * 0.12, item.font_size * 0.55) {
         return false;
     }
 
@@ -407,11 +494,19 @@ fn is_bare_list_marker(text: &str) -> bool {
 fn same_strike_row(left: &TextItem, right: &TextItem) -> bool {
     let font_size = left.font_size.max(right.font_size);
     let tolerance = (font_size * STRIKE_ROW_Y_TOLERANCE_EM).max(STRIKE_ROW_Y_TOLERANCE_MIN);
-    (left.y - right.y).abs() <= tolerance
+    // Same orientation, compared at the baseline: 180° fragments of different
+    // sizes hang from one baseline while their box bottoms differ.
+    left.is_upside_down() == right.is_upside_down()
+        && (baseline_and_up(left).0 - baseline_and_up(right).0).abs() <= tolerance
 }
 
 fn is_inline_script(rule: &Rule, candidate: &TextItem, parent: &TextItem) -> bool {
-    if !is_underline_candidate(candidate)
+    // Script attachment reads left-to-right from an upright parent; a 180°
+    // run's scripts would trail to its left, which the row walk below does
+    // not model, so only upright pairs are joined.
+    if !candidate.is_upright()
+        || !parent.is_upright()
+        || !is_underline_candidate(candidate)
         || is_bare_list_marker(&candidate.text)
         || candidate.font_size <= 0.0
         || candidate.font_size >= parent.font_size * 0.75
@@ -464,7 +559,11 @@ fn snug_strike_owner_indices(rule: &Rule, items: &[TextItem]) -> Vec<usize> {
     if struck_indices.is_empty() {
         return Vec::new();
     }
-    struck_indices.sort_by(|&left, &right| items[left].y.total_cmp(&items[right].y));
+    struck_indices.sort_by(|&left, &right| {
+        baseline_and_up(&items[left])
+            .0
+            .total_cmp(&baseline_and_up(&items[right]).0)
+    });
 
     let mut rows: Vec<Vec<usize>> = Vec::new();
     for index in struck_indices {
@@ -601,7 +700,8 @@ fn has_connected_nonhorizontal_rect(rule: &Rule, rects: &[PdfRect], page: u32) -
 /// below their baseline, and `is_strikeout` on items whose glyphs a rule
 /// crosses at mid x-height. `items`, `rects`, and `lines` are a single
 /// page's extraction output (all in PDF coordinates, y-up, where
-/// `TextItem::y` is the text baseline).
+/// `TextItem::y` is the text baseline of an upright run; a 180° run hangs
+/// from `y + height`).
 pub(crate) fn mark_underlined_items(
     items: &mut [TextItem],
     rects: &[PdfRect],
@@ -631,7 +731,9 @@ pub(crate) fn mark_underlined_items(
         .filter(|(_, rule)| {
             rule.width() <= 60.0
                 && items.iter().any(|item| {
-                    if !is_underline_candidate(item) {
+                    // Denominator geometry is upright-only: it hangs below
+                    // the bar with its glyph tops at `y + height`.
+                    if !is_underline_candidate(item) || !item.is_upright() {
                         return false;
                     }
                     // A denominator HUGS the bar (fraction typesetting
@@ -651,6 +753,7 @@ pub(crate) fn mark_underlined_items(
         .collect();
 
     let mut strikeout_items = vec![false; items.len()];
+    let mut layout_strikeout_items = vec![false; items.len()];
     for (rule_idx, rule) in rules.iter().enumerate() {
         if tabular_rules.contains(&rule_idx)
             || has_connected_nonhorizontal_segment(rule, lines, page)
@@ -660,6 +763,7 @@ pub(crate) fn mark_underlined_items(
         }
         for item_idx in snug_strike_owner_indices(rule, items) {
             strikeout_items[item_idx] = true;
+            layout_strikeout_items[item_idx] |= !rule.strike_rescued;
         }
     }
 
@@ -669,7 +773,8 @@ pub(crate) fn mark_underlined_items(
         .filter(|(_, item)| {
             is_underline_candidate(item)
                 && rules.iter().enumerate().any(|(rule_idx, rule)| {
-                    !tabular_rules.contains(&rule_idx)
+                    !rule.strike_rescued
+                        && !tabular_rules.contains(&rule_idx)
                         && !fraction_rules.contains(&rule_idx)
                         && rule_matches_item(rule, item)
                 })
@@ -684,6 +789,9 @@ pub(crate) fn mark_underlined_items(
 
         if strikeout_items[item_idx] {
             item.is_strikeout = true;
+        }
+        if layout_strikeout_items[item_idx] {
+            item.layout_strikeout = true;
         }
         if underlined_items.contains(&item_idx) {
             item.is_underline = true;
@@ -704,14 +812,26 @@ mod tests {
             width,
             height: font_size,
             font: "F1".to_string(),
+            font_tag: String::new(),
+            legacy_symbol_rewrite: false,
             font_size,
             page: 1,
             is_bold: false,
             is_italic: false,
+            font_weight: None,
+            bold_source: None,
+            fixed_pitch: None,
+            fill_color: None,
+            stroke_color: None,
+            render_mode: None,
             is_underline: false,
             is_strikeout: false,
+            layout_strikeout: false,
+            rotation: 0.0,
+            advance_known: true,
             item_type: ItemType::Text,
             mcid: None,
+            baseline_shift: 0.0,
         }
     }
 
@@ -760,6 +880,24 @@ mod tests {
         let rects = vec![thin_rect(100.0, 497.8, 60.0)];
         mark_underlined_items(&mut items, &rects, &[], 1);
         assert!(items[0].is_underline);
+    }
+
+    #[test]
+    fn thin_rects_far_from_text_leave_the_verdict_unchanged() {
+        // Vector art drawn as thousands of thin filled rects (a map, a
+        // chart's hatching) sits far from the page's text. Those rules can
+        // decorate nothing, so they must not change the text's own
+        // underline, and are only context for the repetition checks.
+        let mut items = vec![item("underlined", 100.0, 500.0, 60.0, 10.0)];
+        let mut rects = vec![thin_rect(100.0, 497.8, 60.0)];
+        for i in 0..5_000 {
+            let col = (i % 50) as f32;
+            let row = (i / 50) as f32;
+            rects.push(thin_rect(300.0 + col * 3.0, 100.0 + row * 1.5, 2.5));
+        }
+        mark_underlined_items(&mut items, &rects, &[], 1);
+        assert!(items[0].is_underline);
+        assert!(!items[0].is_strikeout);
     }
 
     #[test]
@@ -1120,6 +1258,84 @@ mod tests {
     }
 
     #[test]
+    fn repeated_snug_strikethroughs_survive_ruling_filter() {
+        // Redlines strike several whole lines of similar width: span-similar
+        // rules at 3+ y-levels crossing the glyphs must still mark each line.
+        let mut items = vec![
+            item("first struck line of text", 50.0, 700.0, 300.0, 11.0),
+            item("second struck line here", 50.0, 650.0, 300.0, 11.0),
+            item("third struck line as well", 50.0, 600.0, 300.0, 11.0),
+        ];
+        let lines = vec![
+            hline(50.0, 350.0, 703.0),
+            hline(50.0, 350.0, 653.0),
+            hline(50.0, 350.0, 603.0),
+        ];
+
+        mark_underlined_items(&mut items, &[], &lines, 1);
+
+        assert!(items.iter().all(|item| item.is_strikeout));
+        assert!(items.iter().all(|item| !item.is_underline));
+        // Kept only as decorations: layout heuristics see the page as before.
+        assert!(items.iter().all(|item| !item.layout_strikeout));
+    }
+
+    #[test]
+    fn lone_strikethrough_is_layout_evidence() {
+        let mut items = vec![item("struck out", 100.0, 500.0, 60.0, 10.0)];
+        let lines = vec![hline(99.0, 161.0, 503.0)];
+        mark_underlined_items(&mut items, &[], &lines, 1);
+        assert!(items[0].is_strikeout && items[0].layout_strikeout);
+    }
+
+    #[test]
+    fn repeated_rules_through_spaced_cells_are_not_strikethroughs() {
+        // Repeated rules crossing rows of widely separated cells stay
+        // rulings: the snug rescue rejects column-sized gaps.
+        let mut items = vec![
+            item("cell a", 50.0, 700.0, 60.0, 11.0),
+            item("cell b", 190.0, 700.0, 60.0, 11.0),
+            item("cell c", 330.0, 700.0, 70.0, 11.0),
+            item("cell d", 50.0, 650.0, 60.0, 11.0),
+            item("cell e", 190.0, 650.0, 60.0, 11.0),
+            item("cell f", 330.0, 650.0, 70.0, 11.0),
+            item("cell g", 50.0, 600.0, 60.0, 11.0),
+            item("cell h", 190.0, 600.0, 60.0, 11.0),
+            item("cell i", 330.0, 600.0, 70.0, 11.0),
+        ];
+        let lines = vec![
+            hline(50.0, 400.0, 703.0),
+            hline(50.0, 400.0, 653.0),
+            hline(50.0, 400.0, 603.0),
+        ];
+
+        mark_underlined_items(&mut items, &[], &lines, 1);
+
+        assert!(items.iter().all(|item| !item.is_strikeout));
+    }
+
+    #[test]
+    fn rows_above_and_below_a_rule_do_not_pool_into_one_owner() {
+        // Tight rows: each repeated rule sits under one short cell and
+        // crosses the glyphs of the next row's short cell. Neither row alone
+        // covers the rule, so pooling both rows must not rescue it.
+        let mut items = Vec::new();
+        let mut lines = Vec::new();
+        for row in 0..4 {
+            let base = 700.0 - row as f32 * 20.0;
+            items.push(item("aaaa", 50.0, base, 40.0, 10.0));
+            items.push(item("bbbb", 104.0, base - 10.0, 40.0, 10.0));
+            lines.push(hline(50.0, 144.0, base - 7.0));
+        }
+
+        mark_underlined_items(&mut items, &[], &lines, 1);
+
+        assert!(items
+            .iter()
+            .all(|item| !item.is_strikeout && !item.is_underline));
+    }
+
+    #[test]
     fn snug_rescue_spans_split_runs_on_one_line() {
         // A single underlined line is often split into several runs (script
         // or font switches). The union of touching runs owns the rule.
@@ -1208,5 +1424,120 @@ mod tests {
         mark_underlined_items(&mut items, &[], &lines, 1);
 
         assert!(items.iter().all(|item| !item.is_underline));
+    }
+
+    #[test]
+    fn vertical_run_is_never_underlined_by_a_rule_under_its_box() {
+        // A rotated table header sitting on its cell's bottom border: the
+        // rule spans the run's em-wide box right under it. The identical
+        // geometry is an underline for a horizontal run, so orientation is
+        // the only thing keeping the border from marking the header.
+        let mut vertical = item("Header", 100.0, 500.0, 10.0, 10.0);
+        vertical.height = 60.0;
+        vertical.rotation = 90.0;
+        let horizontal = item("Header", 100.0, 500.0, 10.0, 10.0);
+        let lines = vec![hline(98.0, 112.0, 498.5)];
+
+        let mut items = vec![vertical];
+        mark_underlined_items(&mut items, &[], &lines, 1);
+        assert!(!items[0].is_underline);
+
+        let mut items = vec![horizontal];
+        mark_underlined_items(&mut items, &[], &lines, 1);
+        assert!(items[0].is_underline);
+
+        // Upside-down (180°): the box bottom is the glyph tops, so a rule
+        // under it is an overline in text space, not an underline.
+        let mut flipped = item("Header", 100.0, 500.0, 10.0, 10.0);
+        flipped.rotation = 180.0;
+        let mut items = vec![flipped];
+        mark_underlined_items(&mut items, &[], &lines, 1);
+        assert!(!items[0].is_underline);
+        assert!(!items[0].is_strikeout);
+    }
+
+    #[test]
+    fn upside_down_run_is_underlined_by_a_rule_over_its_box() {
+        // A 180° run hangs from y + height = 510; its underline is drawn on
+        // the far side of that baseline from the glyphs, i.e. just ABOVE the
+        // box in page coordinates. The same rule over an upright run with the
+        // same box is nowhere near its baseline.
+        let mut flipped = item("Header", 100.0, 500.0, 10.0, 10.0);
+        flipped.rotation = 180.0;
+        let upright = item("Header", 100.0, 500.0, 10.0, 10.0);
+        let lines = vec![hline(98.0, 112.0, 511.5)];
+
+        let mut items = vec![flipped];
+        mark_underlined_items(&mut items, &[], &lines, 1);
+        assert!(items[0].is_underline);
+        assert!(!items[0].is_strikeout);
+
+        let mut items = vec![upright];
+        mark_underlined_items(&mut items, &[], &lines, 1);
+        assert!(!items[0].is_underline);
+        assert!(!items[0].is_strikeout);
+    }
+
+    #[test]
+    fn oblique_run_is_never_decorated_by_a_horizontal_rule() {
+        // A 30° callout has no horizontal rule to match: the rule under its
+        // box start would read as an underline, and one through the box as a
+        // strikeout, if the windows were measured from a level baseline.
+        let mut oblique = item("Callout", 100.0, 500.0, 40.0, 10.0);
+        oblique.rotation = 30.0;
+        oblique.height = 30.0;
+        let under = vec![hline(99.0, 141.0, 498.5)];
+        let mut items = vec![oblique.clone()];
+        mark_underlined_items(&mut items, &[], &under, 1);
+        assert!(!items[0].is_underline && !items[0].is_strikeout);
+        let through = vec![hline(100.0, 140.0, 503.0)];
+        let mut items = vec![oblique];
+        mark_underlined_items(&mut items, &[], &through, 1);
+        assert!(!items[0].is_underline && !items[0].is_strikeout);
+
+        // A scanned page's text layer sits a couple of degrees off level and
+        // keeps its decorations.
+        let mut skewed = item("Header", 100.0, 500.0, 40.0, 10.0);
+        skewed.rotation = 2.0;
+        let mut items = vec![skewed];
+        mark_underlined_items(&mut items, &[], &under, 1);
+        assert!(items[0].is_underline);
+    }
+
+    #[test]
+    fn upside_down_fragments_of_different_sizes_share_a_strike_row() {
+        // Two 180° fragments hang from the same baseline (510) while their
+        // box bottoms differ by 8pt; grouped at the baseline they form one
+        // row that the rule spans snugly, so both are struck.
+        let mut small = item("Deleted", 100.0, 500.0, 40.0, 10.0);
+        small.rotation = 180.0;
+        let mut large = item("text", 145.0, 492.0, 40.0, 18.0);
+        large.rotation = 180.0;
+        let lines = vec![hline(100.0, 185.0, 507.0)];
+        let mut items = vec![small, large];
+        mark_underlined_items(&mut items, &[], &lines, 1);
+        assert!(items[0].is_strikeout, "{items:?}");
+        assert!(items[1].is_strikeout, "{items:?}");
+    }
+
+    #[test]
+    fn upside_down_run_is_struck_by_a_rule_through_its_glyphs() {
+        // Mid x-height of a 180° run lies below its baseline (y + height) in
+        // page coordinates: 10pt glyphs hanging from 510 are crossed at 507,
+        // where an upright run of the same box has only ascenders.
+        let mut flipped = item("Deleted", 100.0, 500.0, 40.0, 10.0);
+        flipped.rotation = 180.0;
+        let upright = item("Deleted", 100.0, 500.0, 40.0, 10.0);
+        let lines = vec![hline(100.0, 140.0, 507.0)];
+
+        let mut items = vec![flipped];
+        mark_underlined_items(&mut items, &[], &lines, 1);
+        assert!(items[0].is_strikeout);
+        assert!(!items[0].is_underline);
+
+        let mut items = vec![upright];
+        mark_underlined_items(&mut items, &[], &lines, 1);
+        assert!(!items[0].is_strikeout);
+        assert!(!items[0].is_underline);
     }
 }

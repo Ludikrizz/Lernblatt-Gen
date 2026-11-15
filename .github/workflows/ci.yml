@@ -1,0 +1,85 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: checks
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      PYTHONIOENCODING: utf-8
+      TESSDATA_PREFIX: /usr/share/tesseract-ocr/5/tessdata
+    steps:
+      - uses: actions/checkout@v7
+
+      # 1. Kein Kursmaterial und keine generierten Daten im Repo (Urheberrecht).
+      - name: Repo-Hygiene
+        run: |
+          bad=$(git ls-files | grep -E '^(Vorlesungen|Examples|Scratchpad|_derived)/' \
+                | grep -vE '^(Vorlesungen|Examples|Scratchpad)/\.gitkeep$|^_derived/README\.md$' || true)
+          pdfs=$(git ls-files '*.pdf' '*.PDF' | grep -v '^tools/' || true)
+          if [ -n "$bad$pdfs" ]; then
+            echo "::error::Kursmaterial oder generierte Dateien im Commit:"
+            printf '%s\n' $bad $pdfs
+            exit 1
+          fi
+
+      # 2. Keine festen Pfade auf einen einzelnen Rechner.
+      - name: Keine lokalen Projektpfade
+        run: |
+          if git ls-files '.claude/*' '.pi/*' 'AGENTS.md' 'docs/*' \
+             | xargs grep -nE '[A-Za-z]:/Studium|[A-Za-z]:\\Studium'; then
+            echo "::error::Fester Projektpfad gefunden. pfade.ROOT oder relative Pfade nutzen."
+            exit 1
+          fi
+
+      # 3. .pi/ spiegelt .claude/ (siehe AGENTS.md, Abschnitt Änderungen).
+      - name: Spiegelung .claude ↔ .pi
+        run: |
+          diff -r --exclude=__pycache__ --exclude='*-workspace' \
+            .claude/skills .pi/agents/skills
+          for f in .claude/agents/*.md; do
+            diff -q "$f" ".pi/agents/$(basename "$f")"
+          done
+
+      - uses: astral-sh/setup-uv@v10.3.3
+        with:
+          enable-cache: true
+
+      - name: Abhängigkeiten installieren
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq tesseract-ocr tesseract-ocr-deu tesseract-ocr-eng
+          uv sync --locked
+
+      # 4. Lint und Format (Regeln in pyproject.toml).
+      - name: Ruff
+        run: |
+          uv run ruff check .
+          uv run ruff format --check .
+
+      - name: Kompilieren
+        run: uv run python -m compileall -q .claude .pi
+
+      # 5. Selbsttests aus AGENTS.md (laufen ohne Kursmaterial).
+      - name: Selbsttests
+        run: |
+          s=.claude/skills
+          uv run python $s/lernblatt-generator/scripts/lernblatt_html.py --selftest
+          uv run python $s/lernblatt-generator/scripts/slides.py --selftest
+          uv run python $s/lernblatt-generator/scripts/check_crops.py --selftest
+          uv run python $s/themen-analyse/scripts/extract_and_map.py --selftest
+          uv run python $s/themen-analyse/scripts/annots.py --selftest
+          uv run python $s/themen-analyse/scripts/graph.py --selftest

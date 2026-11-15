@@ -121,7 +121,7 @@ durchsuchbar und braucht mehr Platz. Siehe `markierungen.md`, Regel 1.
    enthalten oder ganz auslassen.
 3. **Rendern und die Warnung lesen:**
    ```bash
-   python .claude/skills/lernblatt-generator/scripts/render_crop.py \
+   uv run python .claude/skills/lernblatt-generator/scripts/render_crop.py \
      --pdf "<Deck>.pdf" --pages 10 --rect 30,100,700,280 \
      --out "<Ausgabeordner>/bilder" --prefix VL05
    ```
@@ -135,7 +135,7 @@ durchsuchbar und braucht mehr Platz. Siehe `markierungen.md`, Regel 1.
    Ausschnitt falsch — zieh das Rechteck bis um den Block herum und rendere neu.
 4. **Am Ende den Ordner prüfen:**
    ```bash
-   python .claude/skills/lernblatt-generator/scripts/check_crops.py "<Ausgabeordner>/bilder"
+   uv run python .claude/skills/lernblatt-generator/scripts/check_crops.py "<Ausgabeordner>/bilder"
    ```
    Findet `LEER`, `WINZIG` und `SCHLITZ` in einer Sekunde, ohne dass ein Modell
    die Bilder ansehen muss. Auf den 84 Bildern des GenAi-Blatts meldet es 9 — und

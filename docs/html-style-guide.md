@@ -57,20 +57,25 @@ nicht mit.
 
 ## Bau-Muster
 ```python
-import sys; sys.path.insert(0, ".claude/skills/lernblatt-generator/scripts")
+import sys
+
+sys.path.insert(0, ".claude/skills/lernblatt-generator/scripts")
 from lernblatt_html import LernblattHTML
+
 lb = LernblattHTML("Lernblatt <Fach>", img_dir="<Ausgabeordner>/bilder")
 
-lb.h_deck("03 LOD2 SPARQL")                   # Foliensatz-Trenner
-lb.h_topic("RDF als Grundlage")               # Folientitel 1:1
+lb.h_deck("03 LOD2 SPARQL")  # Foliensatz-Trenner
+lb.h_topic("RDF als Grundlage")  # Folientitel 1:1
 lb.kern("RDF beschreibt Daten als Tripel Subjekt – Prädikat – Objekt.")
 lb.formel("<mrow><mi>x</mi><mo>=</mo><mn>1</mn></mrow>", "x gleich 1")
 lb.sublabel("RDF-Datenmodell:")
 lb.glossar("resource", "alles Benennbare, per URI identifiziert.")
 lb.bullet("offenes Format (CSV statt Excel).", color="red")
-lb.pic("VL03-11.png", anteil=0.62)            # so breit wie auf der Folie
-lb.tabelle(["Verfahren", "Paradigma"],        # Zellen duerfen HTML enthalten
-           [["Klassifikation", "überwacht"]]) #   lb.img_tag(...) setzt ein Bild rein
+lb.pic("VL03-11.png", anteil=0.62)  # so breit wie auf der Folie
+lb.tabelle(
+    ["Verfahren", "Paradigma"],  # Zellen duerfen HTML enthalten
+    [["Klassifikation", "überwacht"]],
+)  #   lb.img_tag(...) setzt ein Bild rein
 lb.akzent("Klausur-Aufgabe: …")
 lb.pic("VL03-17_annot.png", anteil=0.8)
 lb.save("Examples/<Fach>/Lernblaetter/Lernblatt_<Fach>.html")

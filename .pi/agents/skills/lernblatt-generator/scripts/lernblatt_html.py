@@ -4,9 +4,13 @@ A4-Marker links. Screenshots werden als base64 eingebettet -> eine Datei pro Fac
 
 Stil-Spez: docs/html-style-guide.md. Kalibrierung: docs/vergleich-datascience.md.
 """
-import base64, html, os, re
-from PIL import Image
 
+import base64
+import html
+import os
+import re
+
+from PIL import Image
 
 # Platzhalter im Body; save() ersetzt ihn durch relativen Pfad oder data:-URI.
 IMG_MARKE = "\x00IMG\x00"
@@ -14,6 +18,7 @@ IMG_MARKE = "\x00IMG\x00"
 
 def b64_of(path):
     return base64.b64encode(open(path, "rb").read()).decode()
+
 
 CSS = """
 :root{ --blau:#1F549B; --rot:#C0000C; --text:#111; --grau:#555;
@@ -128,32 +133,48 @@ class LernblattHTML:
         self.titel = titel
         self.img_dir = img_dir
         self.body = []
-        self.bilder = set()    # benutzte Bildpfade, fuer den Bericht in save()
-        self._li = []          # offene Bullet-Liste puffern
+        self.bilder = set()  # benutzte Bildpfade, fuer den Bericht in save()
+        self._li = []  # offene Bullet-Liste puffern
 
     def _flush(self):
         if self._li:
-            self.body.append('<ul class="text">' + ''.join(self._li) + '</ul>')
+            self.body.append('<ul class="text">' + "".join(self._li) + "</ul>")
             self._li = []
 
     def h_deck(self, t):
         """Trenner je Vorlesung. Ohne ihn verschwimmen mehrere Foliensaetze in
         einem Blatt zu einem Strom — beim Lernen will man wissen, aus welcher
         Vorlesung ein Abschnitt kommt. Nur der Foliensatz-Name, kein Zusatz."""
-        self._flush(); self.body.append(f'<h2 class="deck">{t}</h2>')
+        self._flush()
+        self.body.append(f'<h2 class="deck">{t}</h2>')
 
-    def h_topic(self, t): self._flush(); self.body.append(f'<h3>{t}</h3>')
-    def kern(self, t): self._flush(); self.body.append(f'<p class="kern">{t}</p>')
-    def sublabel(self, t): self._flush(); self.body.append(f'<p class="sublabel">{t}</p>')
-    def para(self, t): self._flush(); self.body.append(f'<p class="text">{t}</p>')
-    def akzent(self, t): self._flush(); self.body.append(f'<p class="akzent">{t}</p>')
+    def h_topic(self, t):
+        self._flush()
+        self.body.append(f"<h3>{t}</h3>")
+
+    def kern(self, t):
+        self._flush()
+        self.body.append(f'<p class="kern">{t}</p>')
+
+    def sublabel(self, t):
+        self._flush()
+        self.body.append(f'<p class="sublabel">{t}</p>')
+
+    def para(self, t):
+        self._flush()
+        self.body.append(f'<p class="text">{t}</p>')
+
+    def akzent(self, t):
+        self._flush()
+        self.body.append(f'<p class="akzent">{t}</p>')
 
     def formel(self, mathml, aria="Formel"):
         """MathML als gesetzte Formel. Browser rendern es offline ohne JS-Bibliothek."""
         self._flush()
         self.body.append(
             '<div class="formel"><math xmlns="http://www.w3.org/1998/Math/MathML" '
-            f'display="block" aria-label="{html.escape(aria)}">{mathml}</math></div>')
+            f'display="block" aria-label="{html.escape(aria)}">{mathml}</math></div>'
+        )
 
     def glossar(self, term, definition):
         """Bullet mit fettem Begriff, Definition umgebrochen in die Zeile darunter.
@@ -166,11 +187,11 @@ class LernblattHTML:
 
     def bullet(self, text, color=None):
         # Labels before a colon are always study anchors, not disposable prose.
-        m = re.match(r'^(?!<)([^:<>]{1,80}:)(.*)$', text, re.S)
+        m = re.match(r"^(?!<)([^:<>]{1,80}:)(.*)$", text, re.S)
         if m:
-            text = f'<b>{m.group(1)}</b>{m.group(2)}'
-        cls = ' class="red"' if color == "red" else ''
-        self._li.append(f'<li{cls}>{text}</li>')
+            text = f"<b>{m.group(1)}</b>{m.group(2)}"
+        cls = ' class="red"' if color == "red" else ""
+        self._li.append(f"<li{cls}>{text}</li>")
 
     def img_tag(self, fname, width=None, alt="", anteil=None):
         """<img> mit Platzhalter statt Bilddaten — auch fuer eine Tabellenzelle.
@@ -189,13 +210,15 @@ class LernblattHTML:
         unscharf.
         """
         p = fname if os.path.isabs(fname) else os.path.join(self.img_dir, fname)
-        w, _ = Image.open(p).size                 # nur die Breite, lokal, gratis
+        w, _ = Image.open(p).size  # nur die Breite, lokal, gratis
         cap = min(width, w) if width else w
         pct = f",{round(anteil * 100)}%" if anteil else ""
         mw = f"min({cap}px{pct})" if pct else f"{cap}px"
         self.bilder.add(p)
-        return (f'<img class="shot" alt="{html.escape(alt)}" '
-                f'style="max-width:{mw}" src="{IMG_MARKE}{p}{IMG_MARKE}">')
+        return (
+            f'<img class="shot" alt="{html.escape(alt)}" '
+            f'style="max-width:{mw}" src="{IMG_MARKE}{p}{IMG_MARKE}">'
+        )
 
     def pic(self, fname, width=None, alt="", anteil=None, hinweis=None):
         """Bild als eigene Abbildung. `anteil` siehe img_tag.
@@ -206,9 +229,8 @@ class LernblattHTML:
         einen Halbsatz: er erklaert die Herkunft, nicht den Inhalt.
         """
         self._flush()
-        cap = f'<figcaption>{html.escape(hinweis)}</figcaption>' if hinweis else ''
-        self.body.append(
-            f'<figure>{self.img_tag(fname, width, alt, anteil)}{cap}</figure>')
+        cap = f"<figcaption>{html.escape(hinweis)}</figcaption>" if hinweis else ""
+        self.body.append(f"<figure>{self.img_tag(fname, width, alt, anteil)}{cap}</figure>")
 
     def tabelle(self, kopf, zeilen):
         """Tabelle aus Kopfzeile und Zeilen. Zellen duerfen HTML enthalten —
@@ -217,11 +239,9 @@ class LernblattHTML:
         Fliesstext, und genau danach fragen die Notizen im PDF meistens.
         """
         self._flush()
-        k = ''.join(f'<th>{c}</th>' for c in kopf)
-        z = ''.join('<tr>' + ''.join(f'<td>{c}</td>' for c in r) + '</tr>'
-                    for r in zeilen)
-        self.body.append(f'<table class="lb"><thead><tr>{k}</tr></thead>'
-                         f'<tbody>{z}</tbody></table>')
+        k = "".join(f"<th>{c}</th>" for c in kopf)
+        z = "".join("<tr>" + "".join(f"<td>{c}</td>" for c in r) + "</tr>" for r in zeilen)
+        self.body.append(f'<table class="lb"><thead><tr>{k}</tr></thead><tbody>{z}</tbody></table>')
 
     def raw(self, markup):
         """Roh-HTML, z.B. ein inline-SVG. Sparsam nutzen — alles, wofuer es oben
@@ -235,19 +255,23 @@ class LernblattHTML:
         self._flush()
         knopf = (
             '<div class="knopf">'
-            '<button onclick="lbDruck()" title="Druckdialog für A4 öffnen">A4</button></div>')
-        doc = (f'<!doctype html>\n<html lang="de"><head><meta charset="utf-8">\n'
-               f'<meta name="viewport" content="width=device-width, initial-scale=1">\n'
-               f'<title>{html.escape(self.titel)}</title>\n<style>{CSS}</style>\n'
-               f'</head>\n'
-               f'<body>\n{knopf}\n<div class="page">\n<div id="rail"></div>\n'
-               f'<h1>{self.titel}</h1>\n' + '\n'.join(self.body) +
-               f'\n</div>\n<script>{DRUCK_JS}{RAIL_JS}</script>\n</body></html>')
+            '<button onclick="lbDruck()" title="Druckdialog für A4 öffnen">A4</button></div>'
+        )
+        doc = (
+            f'<!doctype html>\n<html lang="de"><head><meta charset="utf-8">\n'
+            f'<meta name="viewport" content="width=device-width, initial-scale=1">\n'
+            f"<title>{html.escape(self.titel)}</title>\n<style>{CSS}</style>\n"
+            f"</head>\n"
+            f'<body>\n{knopf}\n<div class="page">\n<div id="rail"></div>\n'
+            f"<h1>{self.titel}</h1>\n"
+            + "\n".join(self.body)
+            + f"\n</div>\n<script>{DRUCK_JS}{RAIL_JS}</script>\n</body></html>"
+        )
 
         def src(m):
             p = m.group(1)
             if bundle:
-                return f'data:image/png;base64,{b64_of(p)}'
+                return f"data:image/png;base64,{b64_of(p)}"
             try:
                 ziel = os.path.relpath(p, basis or ".").replace(os.sep, "/")
             except ValueError:
@@ -279,6 +303,7 @@ class LernblattHTML:
 
 def _selftest():
     import shutil
+
     tmp = os.path.join(os.environ.get("TEMP", "."), "lb_selftest")
     bild = os.path.join(tmp, "bilder")
     os.makedirs(bild, exist_ok=True)
@@ -287,28 +312,27 @@ def _selftest():
     lb = LernblattHTML("T", img_dir=bild)
     lb.h_deck("Deck 01")
     lb.h_topic("Thema")
-    lb.glossar("a", "b")                # Bullet, Definition umgebrochen
-    lb.bullet("c")                      # glossar + bullet -> ein <ul>
+    lb.glossar("a", "b")  # Bullet, Definition umgebrochen
+    lb.bullet("c")  # glossar + bullet -> ein <ul>
     lb.formel("<mrow><mi>x</mi><mo>=</mo><mn>1</mn></mrow>", "x gleich 1")
     lb.pic("x.png", anteil=0.5)
     lb.tabelle(["K"], [[lb.img_tag("x.png", 100)]])
 
     a = open(lb.save(os.path.join(tmp, "a.html")), encoding="utf-8").read()
     b = open(lb.save(os.path.join(tmp, "b.html"), bundle=True), encoding="utf-8").read()
-    assert 'src="bilder/x.png"' in a, a[a.find("<img"):][:120]
+    assert 'src="bilder/x.png"' in a, a[a.find("<img") :][:120]
     assert "base64," not in a, "verlinkte Fassung enthaelt doch Bilddaten"
     assert "data:image/png;base64," in b
     assert a.count("<ul") == 1 and a.count("<li") == 2, "nicht eine gemeinsame Liste"
     assert '<li><b>a</b><span class="def">b</span></li>' in a, "Glossar-Form falsch"
-    assert 'max-width:min(400px,50%)' in a, "anteil nicht gesetzt"
+    assert "max-width:min(400px,50%)" in a, "anteil nicht gesetzt"
     assert '<h2 class="deck">' in a and "<h3>" in a
     assert '<div class="formel"><math' in a and "<mi>x</mi>" in a, "MathML fehlt"
     assert "lbDruck()" in a, "Druckknopf fehlt"
     assert "durchgehend" not in a, "Einseiten-Druck ist noch enthalten"
     faktor = len(b) / len(a)
     shutil.rmtree(tmp, ignore_errors=True)
-    print(f"selftest ok - verlinkt {len(a)/1024:.1f} KB, "
-          f"gebuendelt {faktor:.0f}x so gross")
+    print(f"selftest ok - verlinkt {len(a) / 1024:.1f} KB, gebuendelt {faktor:.0f}x so gross")
 
 
 if __name__ == "__main__":

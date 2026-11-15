@@ -14,19 +14,29 @@ Parser ist **pdf-inspector** (Rust, MIT, lokal, kein Modell, keine Kosten):
 Folgeseiten mit gleichem Titel werden zu einem Thema zusammengefasst; die letzte
 Seite ist die finale Animations-Bau-Stufe.
 """
+
 import io
 import os
+import re
 import sys
 
 import pdf_inspector as pi
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from pfade import ROOT, cache, pdfs, prefix_fuer_datei, quellen
+from pfade import cache, prefix_fuer_datei, quellen
 
-SIZE_TOL = 0.6    # pt Toleranz, damit mehrzeilige Titel zusammenbleiben
-GAP = 2.2         # Zeilenabstand > GAP * Schriftgroesse => nicht mehr Titel
+SIZE_TOL = 0.6  # pt Toleranz, damit mehrzeilige Titel zusammenbleiben
+GAP = 2.2  # Zeilenabstand > GAP * Schriftgroesse => nicht mehr Titel
 OCR_VISUAL_WORDS = 30  # wenig Text + grosse Grafik => OCR-Fallback pruefen
+# PyMuPDF4LLM markiert OCR aus Fotos, Karten und Screenshots als Bildtext. Der
+# ist meist Rauschen ("SI Bi 5 Yt Jh") und darf den Seitenvergleich nicht gewinnen.
+BILDTEXT = re.compile(r"<!-- Start of picture text -->.*?<!-- End of picture text -->", re.S)
+
+
+def _fliesstext_woerter(md):
+    """Wortzahl ohne OCR-Bildtext. Massstab fuer Erstpass gegen OCR-Fallback."""
+    return len(BILDTEXT.sub(" ", md or "").split())
 
 
 def page_titles(pdf):
@@ -43,10 +53,9 @@ def page_titles(pdf):
             out[p] = ""
             continue
         mx = max(i.font_size for i in cand)
-        same = sorted((i for i in cand if i.font_size >= mx - SIZE_TOL),
-                      key=lambda i: (-i.y, i.x))
+        same = sorted((i for i in cand if i.font_size >= mx - SIZE_TOL), key=lambda i: (-i.y, i.x))
         parts, last = [], None
-        for c in same:                      # mehrzeilige Titel ja, Seitenmitte nein
+        for c in same:  # mehrzeilige Titel ja, Seitenmitte nein
             if last is not None and last - c.y > mx * GAP:
                 break
             parts.append(c.text.strip())
@@ -75,6 +84,7 @@ def topic_blocks(titles, n):
 def _visual_pages(pdf, pages):
     """0-basierte Seiten mit wenig Text und grossem Raster-/Vektorinhalt."""
     import pymupdf
+
     out = set()
     with pymupdf.open(pdf) as doc:
         for extracted in pages:
@@ -83,8 +93,7 @@ def _visual_pages(pdf, pages):
             page = doc[extracted.page]
             area = page.rect.get_area()
             has_image = bool(page.get_image_info())
-            has_graphic = any(d["rect"].get_area() > area * 0.03
-                              for d in page.get_drawings())
+            has_graphic = any(d["rect"].get_area() > area * 0.03 for d in page.get_drawings())
             if has_image or has_graphic:
                 out.add(extracted.page)
     return out
@@ -114,6 +123,7 @@ def _ocr_markdown(pdf, page_numbers):
         import pymupdf
         import pymupdf4llm
         from pymupdf4llm.ocr import OCRMode
+
         doc = pymupdf.open(pdf)
         try:
             chunks = pymupdf4llm.to_markdown(
@@ -137,8 +147,10 @@ def _ocr_markdown(pdf, page_numbers):
     if tessdata:
         try:
             from pymupdf4llm.ocr import tesseract_api
-            language = "deu+eng" if os.path.exists(
-                os.path.join(tessdata, "deu.traineddata")) else "eng"
+
+            language = (
+                "deu+eng" if os.path.exists(os.path.join(tessdata, "deu.traineddata")) else "eng"
+            )
             run(tesseract_api.exec_ocr, page_numbers, language)
         except Exception as exc:
             errors.append(f"Tesseract: {exc}")
@@ -146,6 +158,7 @@ def _ocr_markdown(pdf, page_numbers):
     if missing:
         try:
             from pymupdf4llm.ocr import rapidocr_api
+
             run(rapidocr_api.exec_ocr, missing, "eng")
         except Exception as exc:
             errors.append(f"RapidOCR: {exc}")
@@ -163,7 +176,7 @@ def write_markdown(pdf, dest):
     for page in res.pages:
         fast = (page.markdown or "").strip()
         fallback = ocr.get(page.page, "")
-        if len(fallback.split()) > len(fast.split()):
+        if _fliesstext_woerter(fallback) > _fliesstext_woerter(fast):
             fast = fallback
             recovered.add(page.page)
         parts.append(f"<!-- Seite {page.page + 1} -->\n{fast}\n")
@@ -180,8 +193,11 @@ def main(fach):
     for d, pre in quellen(fach):
         unter = os.path.basename(d)
         print(f"=== {unter} ===")
-        pdfs = sorted(f for f in os.listdir(d) if f.lower().endswith(".pdf")) \
-            if os.path.isdir(d) else []
+        pdfs = (
+            sorted(f for f in os.listdir(d) if f.lower().endswith(".pdf"))
+            if os.path.isdir(d)
+            else []
+        )
         if not pdfs:
             print(f"  ({unter} fehlt oder leer)")
             continue
@@ -208,35 +224,39 @@ def main(fach):
     print(f"=== Folien-Titel -> {mp} ===")
     ges = them = 0
     with open(mp, "w", encoding="utf-8") as fh:
-        fh.write("# Ein Thema je Zeile. 'final pN' = vollstaendige "
-                 "Animations-Bau-Stufe.\n")
+        fh.write("# Ein Thema je Zeile. 'final pN' = vollstaendige Animations-Bau-Stufe.\n")
         for base, path, n in decks:
             blocks = topic_blocks(page_titles(path), n)
             ges += n
             them += len(blocks)
             fh.write(f"\n### {base} ({n} Seiten, {len(blocks)} Themen)\n")
             for titel, pages, final in blocks:
-                span = f"p{pages[0]}" if len(pages) == 1 else \
-                       f"p{pages[0]}-{pages[-1]} (final p{final})"
+                span = (
+                    f"p{pages[0]}"
+                    if len(pages) == 1
+                    else f"p{pages[0]}-{pages[-1]} (final p{final})"
+                )
                 fh.write(f"{span}: {titel}\n")
     print(f"{ges} Seiten -> {them} Themen.")
     for w in warn:
         print(f"WARN {w}")
     print("Naechste Schritte: Klausur-Zusammenfassung in cache/text/KL_*.md lesen,")
-    print(f"slide_titles.txt zu Themen verdichten, Tabelle in "
-          f"_derived/{fach}/themenliste.md.")
+    print(f"slide_titles.txt zu Themen verdichten, Tabelle in _derived/{fach}/themenliste.md.")
 
 
 def _testdeck(path):
     """Kleines Foliendeck auf Platte, damit der Selbsttest ohne Kursmaterial
     laeuft: Titel gross oben, Fliesstext, Umlaute, eine Bau-Stufe."""
     import pymupdf
+
     doc = pymupdf.open()
-    seiten = [("Einfuehrung", ["Erster Punkt"]),
-              ("Einfuehrung", ["Erster Punkt", "Zweiter Punkt"]),
-              ("RDF als Grundlage", ["Tripel aus Subjekt, Praedikat, Objekt"]),
-              ("RDF Schema mechanism (classes)", ["Klassen und Unterklassen"]),
-              ("Organisation", ["Vorlesung im Hörsaal 3, Übung montags"])]
+    seiten = [
+        ("Einfuehrung", ["Erster Punkt"]),
+        ("Einfuehrung", ["Erster Punkt", "Zweiter Punkt"]),
+        ("RDF als Grundlage", ["Tripel aus Subjekt, Praedikat, Objekt"]),
+        ("RDF Schema mechanism (classes)", ["Klassen und Unterklassen"]),
+        ("Organisation", ["Vorlesung im Hörsaal 3, Übung montags"]),
+    ]
     for nr, (titel, zeilen) in enumerate(seiten, 1):
         p = doc.new_page(width=720, height=540)
         p.insert_text((40, 60), titel, fontsize=28)
@@ -249,36 +269,38 @@ def _testdeck(path):
 
 def _selftest():
     from tempfile import TemporaryDirectory
+
     with TemporaryDirectory() as tmp:
         pdf = f"{tmp}/deck.pdf"
         _testdeck(pdf)
         titles = page_titles(pdf)
         assert titles[3] == "RDF als Grundlage", titles
         assert titles[4] == "RDF Schema mechanism (classes)", titles[4]
-        assert not any(t.startswith("[Image") for t in titles.values()), \
-            "Bild-Platzhalter im Titel"
+        assert not any(t.startswith("[Image") for t in titles.values()), "Bild-Platzhalter im Titel"
         assert topic_blocks(titles, len(titles))[0] == ("Einfuehrung", [1, 2], 2)
         res = pi.extract_pages_markdown(pdf)
         assert res.pages[2].markdown.strip(), "Seite 3 ohne Markdown"
-        assert "Hörsaal" in pi.extract_pages_markdown(pdf, [4]).pages[0].markdown, \
+        assert "Hörsaal" in pi.extract_pages_markdown(pdf, [4]).pages[0].markdown, (
             "Umlaut-Encoding kaputt"
+        )
     blocks = topic_blocks({1: "A", 2: "A", 3: "B"}, 3)
     assert blocks == [("A", [1, 2], 2), ("B", [3], 3)], blocks
 
     from PIL import Image, ImageDraw
+
     with TemporaryDirectory() as tmp:
         scan = f"{tmp}/scan.pdf"
         dest = f"{tmp}/scan.md"
         image = Image.new("RGB", (1000, 400), "white")
-        ImageDraw.Draw(image).text((50, 120), "OCR erkennt Text 123", fill="black",
-                                   font_size=48)
+        ImageDraw.Draw(image).text((50, 120), "OCR erkennt Text 123", fill="black", font_size=48)
         image.save(scan, "PDF", resolution=150)
         _, recovered, errors = write_markdown(scan, dest)
         output = open(dest, encoding="utf-8").read()
-        assert recovered and "OCR erkennt Text 123" in output, \
-            (recovered, errors, output)
-    print(f"selftest ok - {len(topic_blocks(titles, len(titles)))} Themen aus "
-          f"{len(titles)} Seiten, Umlaute ok, OCR-Fallback ok")
+        assert recovered and "OCR erkennt Text 123" in output, (recovered, errors, output)
+    print(
+        f"selftest ok - {len(topic_blocks(titles, len(titles)))} Themen aus "
+        f"{len(titles)} Seiten, Umlaute ok, OCR-Fallback ok"
+    )
 
 
 if __name__ == "__main__":

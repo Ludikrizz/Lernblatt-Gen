@@ -120,7 +120,7 @@ lokale Firecrawl-Instanz. Sie bleiben auf Themen aus Folien und Übungen begrenz
 ## Toolchain
 - `pdf-inspector`: schneller Text-Erstpass und Folien-Titel.
 - `pymupdf`: PDF-Markierungen, Vektorgeometrie, Crops und Rendering.
-- `pymupdf4llm==1.28.2`: selektiver OCR-Fallback für unlesbare oder visuelle Seiten.
+- `pymupdf4llm` (Version in `pyproject.toml`): selektiver OCR-Fallback für unlesbare oder visuelle Seiten.
 - Tesseract mit `deu+eng`: erster OCR-Motor; RapidOCR ist der lokale Ersatz.
 - Das aktive OpenAI-Modell: Inhaltsauswahl, Crop-Entscheidung und Review.
 

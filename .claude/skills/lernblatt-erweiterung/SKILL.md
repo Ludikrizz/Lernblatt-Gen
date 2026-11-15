@@ -59,7 +59,9 @@ nächsten `h_deck`** ein. Verwende eine sichtbare Überschrift, zum Beispiel:
 
 ```python
 lb.h_topic("Erweiterung: Gradient Descent für Klausuraufgaben")
-lb.kern("Die Erweiterung verbindet Lernrate, Ableitung und Update-Schritt zu einem prüfbaren Rechenablauf.")
+lb.kern(
+    "Die Erweiterung verbindet Lernrate, Ableitung und Update-Schritt zu einem prüfbaren Rechenablauf."
+)
 lb.sublabel("Prüfungs- und Übungserweiterung:")
 lb.glossar("Lernrate", "...")
 lb.formel("...", "...")

@@ -13,11 +13,19 @@ Ann-Ops:
   {"type":"box","x0":840,"y0":600,"x1":1140,"y1":660,"color":"red","width":4}
 Text wird um (x,y) zentriert. Farben: red, blue, green, yellow, black.
 """
-import argparse, json
+
+import argparse
+import json
+
 from PIL import Image, ImageDraw, ImageFont
 
-COLORS = {"red": (200, 0, 0), "blue": (31, 84, 155), "green": (0, 150, 0),
-          "yellow": (240, 200, 0), "black": (0, 0, 0)}
+COLORS = {
+    "red": (200, 0, 0),
+    "blue": (31, 84, 155),
+    "green": (0, 150, 0),
+    "yellow": (240, 200, 0),
+    "black": (0, 0, 0),
+}
 
 
 def font(size):
@@ -43,11 +51,11 @@ def main():
             f = font(op.get("size", 40))
             txt = str(op["val"])
             w = dr.textlength(txt, font=f)
-            dr.text((op["x"] - w / 2, op["y"] - op.get("size", 40) / 2),
-                    txt, fill=col, font=f)
+            dr.text((op["x"] - w / 2, op["y"] - op.get("size", 40) / 2), txt, fill=col, font=f)
         elif op["type"] == "box":
-            dr.rectangle((op["x0"], op["y0"], op["x1"], op["y1"]),
-                         outline=col, width=op.get("width", 4))
+            dr.rectangle(
+                (op["x0"], op["y0"], op["x1"], op["y1"]), outline=col, width=op.get("width", 4)
+            )
     im.save(a.out)
     print(f"OK annotiert -> {a.out} {im.size}")
 
