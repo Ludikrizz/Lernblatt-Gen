@@ -20,11 +20,6 @@ _derived/*
 Scratchpad/*
 !Scratchpad/.gitkeep
 
-# --- Externer Parser ----------------------------------------------------------
-# Eigenes Git-Repo (firecrawl/pdf-inspector). Installation siehe README
-# oder als Submodule einbinden.
-tools/pdf-inspector/
-
 # --- Python -------------------------------------------------------------------
 __pycache__/
 *.py[cod]

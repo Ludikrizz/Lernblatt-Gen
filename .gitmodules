@@ -1,0 +1,3 @@
+[submodule "tools/pdf-inspector"]
+	path = tools/pdf-inspector
+	url = https://github.com/firecrawl/pdf-inspector.git
