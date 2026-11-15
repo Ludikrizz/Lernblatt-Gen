@@ -20,11 +20,13 @@ jobs:
     name: gitleaks
     runs-on: ubuntu-24.04
     timeout-minutes: 5
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
-      - uses: gitleaks/gitleaks-action@v3.0.0
+      - uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # PR-Kommentare brauchen Schreibrechte, der Job hat nur Leserechte.
@@ -38,7 +40,7 @@ jobs:
       PYTHONIOENCODING: utf-8
       TESSDATA_PREFIX: /usr/share/tesseract-ocr/5/tessdata
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       # 1. Kein Kursmaterial und keine generierten Daten im Repo (Urheberrecht).
       - name: Repo-Hygiene
@@ -73,7 +75,7 @@ jobs:
             diff -q "$f" ".claude/agents/$(basename "$f")"
           done
 
-      - uses: astral-sh/setup-uv@v10.3.3
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
           enable-cache: true
 
