@@ -1,0 +1,29 @@
+# Dependabot öffnet einmal pro Woche einen PR je Ökosystem mit neuen Versionen.
+# Die Updates sind gruppiert, damit 1 PR alle Pakete enthält statt 1 PR je Paket.
+# Jeder PR läuft durch dieselbe CI wie ein normaler PR.
+version: 2
+updates:
+  # Python-Pakete aus pyproject.toml und uv.lock
+  - package-ecosystem: uv
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      python:
+        patterns: ["*"]
+    commit-message:
+      prefix: "deps"
+
+  # Versionen der Actions in .github/workflows/
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      actions:
+        patterns: ["*"]
+    commit-message:
+      prefix: "ci"

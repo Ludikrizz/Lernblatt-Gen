@@ -179,14 +179,23 @@ Server nach der Prüfung.
 
 1. Erstelle einen Branch: `git switch -c <name>/<thema>`.
 2. Pushe den Branch und öffne einen Pull Request.
-3. Warte, bis der CI-Check `checks` grün ist.
+3. Warte, bis die CI-Checks `checks` und `gitleaks` grün sind.
 4. Lass den Pull Request von 1 Teammitglied freigeben.
 5. Merge mit „Squash and merge“.
 
-Der CI-Check prüft: kein Kursmaterial im Commit, keine festen Projektpfade,
+Der Check `checks` prüft: kein Kursmaterial im Commit, keine festen Projektpfade,
 Spiegelung `.claude/agents/` und `.pi/agents/`, Ruff (Lint und Format), `pytest`
 und `lernblatt selftest`. Vor dem Push lokal: `uv run ruff format .` und
 `uv run ruff check --fix .`.
+
+Der Check `gitleaks` sucht Schlüssel, Tokens und Passwörter in allen Commits.
+Lokal: `gitleaks git .`. Ein Treffer im Commit bleibt in der Git-Historie, auch
+nach dem Löschen. Mach den Schlüssel deshalb sofort ungültig und erzeuge einen
+neuen. Trage einen echten Fehlalarm mit seinem Fingerprint in `.gitleaksignore` ein.
+
+Dependabot öffnet jeden Montag gesammelte Update-PRs für die Python-Pakete
+(`uv.lock`) und die GitHub Actions. Sie durchlaufen dieselbe CI und brauchen
+dieselbe Freigabe.
 
 ## Änderungen
 
