@@ -1,0 +1,46 @@
+# --- Kursmaterial und generierte Ausgaben -----------------------------------
+# Folien, Übungen, Klausuren und fertige Lernblätter sind urheberrechtlich
+# geschützt oder reproduzierbar. Nur die leere Ordnerstruktur bleibt im Repo.
+Vorlesungen/*
+!Vorlesungen/.gitkeep
+Examples/*
+!Examples/.gitkeep
+
+# --- Arbeitsdaten pro Fach --------------------------------------------------
+# planung/, analysen/, build/ und cache/ entstehen pro Fach neu.
+# Nur die Strukturbeschreibung bleibt.
+_derived/*
+!_derived/README.md
+
+# --- Eval-Arbeitsordner (skill-creator), generiert --------------------------
+.pi/agents/skills/*-workspace/
+.claude/skills/*-workspace/
+
+# --- Temporäre Skripte und Renderprüfungen ----------------------------------
+Scratchpad/*
+!Scratchpad/.gitkeep
+
+# --- Externer Parser ----------------------------------------------------------
+# Eigenes Git-Repo (firecrawl/pdf-inspector). Installation siehe README
+# oder als Submodule einbinden.
+tools/pdf-inspector/
+
+# --- Python -------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+
+# --- Lokale Einstellungen und Logs ------------------------------------------
+.claude/settings.local.json
+*.log
+.env
+.env.*
+
+# --- Betriebssystem und Editor ----------------------------------------------
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/

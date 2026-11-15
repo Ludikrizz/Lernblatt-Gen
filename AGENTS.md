@@ -1,0 +1,157 @@
+# AGENTS.md
+
+## Zweck
+
+Dieses Repository erzeugt pro Studienfach HTML-Lernblätter aus Vorlesungsfolien,
+Übungen, Klausuren und Nutzer-Markierungen. Die Vorlesungsfolien sind die Ground
+Truth. Eigene Beispiel-Lernblätter liefern nur den visuellen und sprachlichen Stil.
+
+## Verzeichnisstruktur
+
+```text
+Examples/<Fach>/
+  Vorlesungsfolien/       Folien-PDFs
+  Uebungen/               Übungen und Lösungen
+  Klausuren/              Alt- und Probeklausuren
+  Syllabus.txt            Kursüberblick
+  Lernblaetter/           generierte HTML-Ausgaben
+
+Vorlesungen/<Fach>/       laufender Kurs mit derselben möglichen Unterstruktur
+_derived/<Fach>/
+  planung/                manuelle Begriffe und Nutzerfreigaben
+  analysen/               dauerhafte Analyseergebnisse
+  build/                  reproduzierbare Generatorquellen und Kapitel
+  cache/                  automatisch erzeugte Extrakte, Graphen und Renderprüfungen
+
+.claude/skills/           Projekt-Skills und Generator-Skripte
+.pi/agents/               Laufzeitspiegelung der Projekt-Agenten
+Scratchpad/               temporäre Skripte und Renderprüfungen
+docs/                     Design-, Inhalts- und Prozessdokumentation
+tools/pdf-inspector/      Parser-Referenz
+```
+
+`Examples/<Fach>/` ist die bevorzugte Struktur für sortierte Quellen. Während ein
+Kurs läuft, kann `Vorlesungen/<Fach>/` verwendet werden. Die Pfadlogik in
+`.claude/skills/themen-analyse/scripts/pfade.py` unterstützt beide Varianten.
+
+`_derived/<Fach>/cache/` ist wegwerfbar. `planung/`, `analysen/` und `build/`
+bleiben erhalten. Das genaue Layout steht in `_derived/README.md`.
+
+## Arbeitsablauf
+
+Arbeite in drei Stufen:
+
+1. **Themenanalyse:** Extrakte, PDF-Markierungen, Übungen und Klausuren auswerten.
+2. **Optionale Erweiterung:** Aus Prüfungsanforderungen fehlende Grundlagen,
+   Beispiele und Transferwege ableiten, wenn dies freigegeben ist.
+3. **Generator:** Freigegebene Themen reproduzierbar als HTML-Lernblatt bauen.
+
+Übungs- und Klausurthemen liefern Grundlagen, Aufgabenformen und eigene Beispiele.
+Aufgaben werden nicht wörtlich kopiert. Erweiterungen erscheinen nur bei aktiver
+Freigabe und am passenden Ende eines Foliensatzes.
+
+## Builds
+
+Alle Befehle laufen aus der Projektwurzel `W:/Studium/Lernen`. Ersetze `<Fach>` durch
+den Ordnernamen des Fachs:
+
+```bash
+python "_derived/<Fach>/build/build_lernblatt.py"
+python "_derived/<Fach>/build/build_quicknotes.py"
+```
+
+`build/build_quicknotes.py` ist optional und wird nur ausgeführt, wenn die Datei existiert.
+Die Builds schreiben die HTML-Dateien vollständig neu. Bilder liegen neben dem
+HTML unter `Lernblaetter/bilder/` und werden relativ verlinkt, nicht als Base64
+eingebettet.
+
+## Prüfungen
+
+Es gibt keinen allgemeinen `pytest`- oder Paketmanager-Testlauf. Nutze die
+vorhandenen Selbsttests und Artefaktprüfungen:
+
+```bash
+python -m py_compile "_derived/<Fach>/build/build_lernblatt.py" "_derived/<Fach>/build/chapters/"*.py
+python .claude/skills/lernblatt-generator/scripts/lernblatt_html.py --selftest
+python .claude/skills/lernblatt-generator/scripts/slides.py --selftest
+python .claude/skills/lernblatt-generator/scripts/check_crops.py --selftest
+python .claude/skills/lernblatt-generator/scripts/check_crops.py "Vorlesungen/<Fach>/Lernblaetter/bilder"
+```
+
+Nach jedem Build zusätzlich prüfen:
+
+1. Alle referenzierten Bildpfade existieren.
+2. Jeder `h_topic`-Block beginnt direkt mit genau einem `kern()`.
+3. HTML-Formeln verwenden `LernblattHTML.formel()` und natives MathML.
+4. Folientext aus einem Crop wird nicht nochmals als HTML geschrieben.
+5. Das HTML öffnet ohne Browserfehler.
+
+Für eine Browserprüfung kann die Projektwurzel temporär dienen:
+
+```bash
+python -m http.server 8765 --bind 127.0.0.1
+```
+
+Öffne danach die erzeugte HTML-Datei unter
+`http://127.0.0.1:8765/<Ausgabepfad>`. Beende den Server nach der Prüfung.
+
+## Themenanalyse
+
+Typische Befehle für ein Fach sind:
+
+```bash
+python .claude/skills/themen-analyse/scripts/extract_and_map.py <Fach>
+python .claude/skills/themen-analyse/scripts/annots.py <Fach>
+python .claude/skills/themen-analyse/scripts/graph.py <Fach>
+```
+
+Automatische Analysedaten stehen unter `_derived/<Fach>/cache/`. Dauerhafte Berichte
+stehen unter `analysen/`, und Nutzerfreigaben stehen unter `planung/`. Große
+Folienextrakte nur kapitelweise lesen. Übungs- und Klausurmaterial vollständig lesen,
+wenn es klein genug ist. Eine freigegebene `planung/themenliste.md` ist nicht still
+zu überschreiben.
+
+## Inhalts- und Stilregeln
+
+- Markierte Kästen bestimmen den Inhalt. Textmarker verlangen eine Erklärung.
+  Notizen sind Arbeitsaufträge. Unmarkierte Seiten bleiben ausgeschlossen.
+- Ausgewählte Folientexte bleiben vollständig und inhaltlich 1:1.
+- Jeder Topic-Block beginnt mit einer kurzen `kern()`-Zusammenfassung.
+- Labels vor `:` und zentrale Schlüsselwörter werden fett gesetzt. Unterstreichung
+  bleibt seltenen Merksignalen vorbehalten.
+- Tabellenbegriffe und wichtige Begriffe werden zur Leseführung fett gesetzt.
+- Formeln erscheinen über `formel()` als MathML, nie als sichtbarer LaTeX-Quelltext.
+- Text aus Bildern wird nicht nochmals als HTML geschrieben.
+- Echte Folien-Crops bevorzugen. Grafik-Crops müssen ohne die Folie verständlich sein.
+- Bei Grafik-Kästen das Rechteck `mit Beschriftung` verwenden und ohne
+  PDF-Annotationsebene rendern.
+- Eigene Grafiken oder SVGs nicht erstellen. Nutzerbilder und externe Grafiken mit
+  einer nachvollziehbaren Quellenangabe kennzeichnen.
+- Das Lernblatt bietet nur den A4-Druckdialog, keine Endlos-PDF-Seite.
+- Quicknotes bleiben ein separates, knappes HTML und ersetzen kein normales Lernblatt.
+
+## Crop-Workflow
+
+1. Die finale Animationsstufe der Folie bestimmen.
+2. Mit `render_crop.py` nach `<Ausgabe>/bilder/` rendern.
+3. Rechteckwarnungen prüfen und jeden Crop allein verständlich machen.
+4. `check_crops.py` über den vollständigen Bilderordner ausführen.
+5. Das HTML neu bauen und im Browser prüfen.
+
+Beispiel mit Platzhaltern:
+
+```bash
+python .claude/skills/lernblatt-generator/scripts/render_crop.py \
+  --pdf "Vorlesungen/<Fach>/Vorlesungsfolien/<datei>.pdf" \
+  --pages 1,2 --out "Vorlesungen/<Fach>/Lernblaetter/bilder" --prefix VL01
+```
+
+## Änderungen
+
+Ändere Build- und Kapitelquellen, nicht generierte HTML-Dateien. Halte relative
+Bildpfade ein. Lies vor Inhaltsänderungen `docs/style-guide.md`,
+`docs/html-style-guide.md` und `docs/markierungen.md`. Lies bei Crop-Änderungen
+zusätzlich `docs/bild-zuschnitt.md`.
+
+Bei Änderungen an einem Skill oder Laufzeit-Agenten die entsprechende Spiegelung
+unter `.pi/` beziehungsweise `.claude/` synchron halten.
