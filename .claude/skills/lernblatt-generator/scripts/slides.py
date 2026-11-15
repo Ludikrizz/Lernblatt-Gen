@@ -198,28 +198,69 @@ def topic_blocks(doc):
     return [(t, ps, ps[-1]) for t, ps in out]
 
 
+def _testdeck():
+    """Kleines Foliendeck im Speicher, damit der Selbsttest ohne Kursmaterial
+    laeuft. Aufbau wie echte Folien: grosser Titel oben, Fliesstext,
+    Seitenzahl unten, eine Animations-Bau-Stufe, ein Vektor- und ein Rasterbild.
+
+      S.1-2  "Einfuehrung"         gleiche Titel = 1 Thema, finale Stufe S.2
+      S.3    "RDF als Grundlage"   nur Text, Titelband abschneidbar
+      S.4    "Graph-Modell"        Vektordiagramm mit Beschriftung + Text
+      S.5    "Architektur"         Rasterbild + Text
+    """
+    doc = pymupdf.open()
+    W, H = 720, 540
+
+    def folie(titel, zeilen, nr):
+        p = doc.new_page(width=W, height=H)
+        p.insert_text((40, 60), titel, fontsize=28)
+        for i, z in enumerate(zeilen):
+            p.insert_text((40, 130 + i * 24), z, fontsize=14)
+        p.insert_text((W - 40, H - 15), str(nr), fontsize=10)
+        return p
+
+    folie("Einfuehrung", ["Erster Punkt"], 1)
+    folie("Einfuehrung", ["Erster Punkt", "Zweiter Punkt"], 2)
+    folie("RDF als Grundlage", ["Tripel aus Subjekt, Praedikat, Objekt",
+                                "Ressourcen werden per URI benannt"], 3)
+
+    p = folie("Graph-Modell", ["Knoten und Kanten"], 4)
+    for c in [(260, 300), (460, 300), (360, 420)]:
+        p.draw_circle(c, 30, color=(0, 0, 0), fill=(0.8, 0.9, 1.0))
+    p.draw_line((290, 300), (430, 300), color=(0, 0, 0), width=2)
+    p.draw_line((275, 325), (345, 395), color=(0, 0, 0), width=2)
+    p.insert_text((245, 305), "ex:A", fontsize=11)
+    p.insert_text((445, 305), "ex:B", fontsize=11)
+
+    p = folie("Architektur", ["Schichtenmodell"], 5)
+    pix = pymupdf.Pixmap(pymupdf.csRGB, pymupdf.IRect(0, 0, 64, 48), False)
+    pix.set_rect(pix.irect, (200, 120, 60))
+    p.insert_image(pymupdf.Rect(200, 200, 520, 440), pixmap=pix)
+    return doc
+
+
 def _selftest():
-    import os
-    pdf = ("W:/Studium/Lernen/Examples/Datascience 1/Vorlesungsfolien/"
-           "03_LOD2_SPARQL.pdf")
-    assert os.path.exists(pdf), f"Testdeck fehlt: {pdf}"
-    doc = pymupdf.open(pdf)
-    p = doc[6]
+    doc = _testdeck()
+    p = doc[2]
     assert page_title(p) == "RDF als Grundlage", page_title(p)
     r = content_rect(p, cut_title=True)
-    assert r.y0 > 100, f"Titelband nicht abgeschnitten: {r}"
+    assert r.y0 > 80, f"Titelband nicht abgeschnitten: {r}"
     assert r.get_area() < p.rect.get_area() * 0.7, f"kein echter Crop: {r}"
     assert content_rect(p, cut_title=False).y0 < r.y0, "cut_title wirkungslos"
+    assert title_cut(p), "Titel muss beim Crop verschwinden"
+    assert r.y1 < p.rect.height - 20, f"Seitenzahl im Crop: {r}"
+
     blocks = topic_blocks(doc)
-    assert 0 < len(blocks) <= doc.page_count
+    assert blocks[0] == ("Einfuehrung", [1, 2], 2), blocks[0]
+    assert len(blocks) == 4, blocks
     assert blocks[-1][2] == blocks[-1][1][-1], "finale Stufe ist die letzte Seite"
 
-    fig = figures(doc[9])                       # RDF-Diagramm
+    fig = figures(doc[3])                       # Vektordiagramm
     assert [a for a, _ in fig] == ["vektor"], fig
-    r = fig[0][1]
-    assert r.get_area() < content_rect(doc[9]).get_area(), \
+    assert fig[0][1].get_area() < content_rect(doc[3]).get_area(), \
         "Figur muss enger sein als die ganze Inhalts-Box"
-    assert figures(doc[19]) and figures(doc[19])[0][0] == "raster", figures(doc[19])
+    assert figures(doc[4]) and figures(doc[4])[0][0] == "raster", figures(doc[4])
+    assert not figures(doc[2]), f"Textfolie ohne Figur: {figures(doc[2])}"
     assert all(r in p.rect for p in doc for _, r in figures(p)), \
         "Figur ragt ueber die Seite hinaus"
     n = doc.page_count

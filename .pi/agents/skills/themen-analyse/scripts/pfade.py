@@ -14,7 +14,25 @@ Gerenderte Bilder liegen NICHT hier, sondern neben dem Lernblatt
 """
 import os
 
-ROOT = "W:/Studium/Lernen"
+
+def _projektwurzel():
+    """Projektwurzel = erster Elternordner mit AGENTS.md. LERNBLATT_ROOT
+    ueberschreibt das, z.B. wenn Kursmaterial ausserhalb des Repos liegt."""
+    env = os.environ.get("LERNBLATT_ROOT")
+    if env:
+        return env.replace("\\", "/").rstrip("/")
+    d = os.path.dirname(os.path.abspath(__file__))
+    while True:
+        if os.path.isfile(os.path.join(d, "AGENTS.md")):
+            return d.replace("\\", "/")
+        oben = os.path.dirname(d)
+        if oben == d:
+            raise RuntimeError("Projektwurzel nicht gefunden (keine AGENTS.md "
+                               "ueber diesem Skript). LERNBLATT_ROOT setzen.")
+        d = oben
+
+
+ROOT = _projektwurzel()
 UNTER = [("Vorlesungsfolien", "VL"), ("Uebungen", "UE"), ("Klausuren", "KL")]
 
 

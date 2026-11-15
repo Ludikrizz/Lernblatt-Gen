@@ -27,12 +27,28 @@ _derived/<Fach>/
 .pi/agents/               Laufzeitspiegelung der Projekt-Agenten
 Scratchpad/               temporäre Skripte und Renderprüfungen
 docs/                     Design-, Inhalts- und Prozessdokumentation
-tools/pdf-inspector/      Parser-Referenz
+tools/pdf-inspector/      Quelltext-Referenz des Parsers (installiert wird das PyPI-Paket)
 ```
 
 `Examples/<Fach>/` ist die bevorzugte Struktur für sortierte Quellen. Während ein
 Kurs läuft, kann `Vorlesungen/<Fach>/` verwendet werden. Die Pfadlogik in
 `.claude/skills/themen-analyse/scripts/pfade.py` unterstützt beide Varianten.
+
+## Einrichtung
+
+```bash
+pip install -r requirements.txt
+```
+
+- `pdf-inspector` (PyPI, Quelle: https://github.com/firecrawl/pdf-inspector)
+  liefert den schnellen Text-Erstpass und die Folientitel.
+- `pymupdf` liest Markierungen und rendert Crops.
+- `pymupdf4llm` ist der OCR-Fallback. Er ruft Tesseract auf, wenn Sprachdaten
+  für `eng` (und möglichst `deu`) unter `TESSDATA_PREFIX`,
+  `%LOCALAPPDATA%/Tesseract-OCR/tessdata` oder
+  `%PROGRAMFILES%/Tesseract-OCR/tessdata` liegen. Sonst nutzt er RapidOCR.
+- Die Skripte finden die Projektwurzel selbst über diese `AGENTS.md`.
+  `LERNBLATT_ROOT` überschreibt sie, wenn das Kursmaterial woanders liegt.
 
 `_derived/<Fach>/cache/` ist wegwerfbar. `planung/`, `analysen/` und `build/`
 bleiben erhalten. Das genaue Layout steht in `_derived/README.md`.
@@ -52,7 +68,7 @@ Freigabe und am passenden Ende eines Foliensatzes.
 
 ## Builds
 
-Alle Befehle laufen aus der Projektwurzel `W:/Studium/Lernen`. Ersetze `<Fach>` durch
+Alle Befehle laufen aus der Projektwurzel, dem Ordner mit dieser `AGENTS.md`. Ersetze `<Fach>` durch
 den Ordnernamen des Fachs:
 
 ```bash

@@ -1,7 +1,7 @@
 ---
 name: lernblatt-projektleiter
 description: >-
-  Leitet vollständige Lernblatt-Aufgaben im Projekt W:/Studium/Lernen: prüft
+  Leitet vollständige Lernblatt-Aufgaben in diesem Projekt: prüft
   Projektregeln, bestimmt den aktuellen Prozessschritt, delegiert oder koordiniert
   Materialanalyse, Themenliste, Lernblattbau, Quicknotes und Gegencheck. Nutze diesen
   Agenten immer, wenn ein Fach aus Folien, Übungen, Klausuren oder PDF-Markierungen

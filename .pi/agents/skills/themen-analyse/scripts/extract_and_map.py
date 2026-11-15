@@ -227,28 +227,44 @@ def main(fach):
           f"_derived/{fach}/themenliste.md.")
 
 
+def _testdeck(path):
+    """Kleines Foliendeck auf Platte, damit der Selbsttest ohne Kursmaterial
+    laeuft: Titel gross oben, Fliesstext, Umlaute, eine Bau-Stufe."""
+    import pymupdf
+    doc = pymupdf.open()
+    seiten = [("Einfuehrung", ["Erster Punkt"]),
+              ("Einfuehrung", ["Erster Punkt", "Zweiter Punkt"]),
+              ("RDF als Grundlage", ["Tripel aus Subjekt, Praedikat, Objekt"]),
+              ("RDF Schema mechanism (classes)", ["Klassen und Unterklassen"]),
+              ("Organisation", ["Vorlesung im Hörsaal 3, Übung montags"])]
+    for nr, (titel, zeilen) in enumerate(seiten, 1):
+        p = doc.new_page(width=720, height=540)
+        p.insert_text((40, 60), titel, fontsize=28)
+        for i, z in enumerate(zeilen):
+            p.insert_text((40, 130 + i * 24), z, fontsize=14)
+        p.insert_text((680, 525), str(nr), fontsize=10)
+    doc.save(path)
+    doc.close()
+
+
 def _selftest():
-    pdf = next((path for _, name, path in pdfs("Data Science 1")
-                if name == "03_LOD2_SPARQL.pdf"), None)
-    if pdf is None:
-        pdf = next((path for _, name, path in pdfs("Datascience 1")
-                    if name == "03_LOD2_SPARQL.pdf"), None)
-    assert pdf and os.path.exists(pdf), "Testdeck fehlt: 03_LOD2_SPARQL.pdf"
-    titles = page_titles(pdf)
-    assert titles[7] == "RDF als Grundlage", titles[7]
-    assert titles[10] == "RDF Schema mechanism (classes)", titles[10]
-    assert not any(t.startswith("[Image") for t in titles.values()), \
-        "Bild-Platzhalter im Titel"
+    from tempfile import TemporaryDirectory
+    with TemporaryDirectory() as tmp:
+        pdf = f"{tmp}/deck.pdf"
+        _testdeck(pdf)
+        titles = page_titles(pdf)
+        assert titles[3] == "RDF als Grundlage", titles
+        assert titles[4] == "RDF Schema mechanism (classes)", titles[4]
+        assert not any(t.startswith("[Image") for t in titles.values()), \
+            "Bild-Platzhalter im Titel"
+        assert topic_blocks(titles, len(titles))[0] == ("Einfuehrung", [1, 2], 2)
+        res = pi.extract_pages_markdown(pdf)
+        assert res.pages[2].markdown.strip(), "Seite 3 ohne Markdown"
+        assert "Hörsaal" in pi.extract_pages_markdown(pdf, [4]).pages[0].markdown, \
+            "Umlaut-Encoding kaputt"
     blocks = topic_blocks({1: "A", 2: "A", 3: "B"}, 3)
     assert blocks == [("A", [1, 2], 2), ("B", [3], 3)], blocks
-    res = pi.extract_pages_markdown(pdf)
-    assert res.pages[6].markdown.strip(), "Seite 7 ohne Markdown"
-    umlaut = f"{ROOT}/Examples/CyberSec/Vorlesungsfolien/02_Lecture-02_Security_Concepts.pdf"
-    if os.path.exists(umlaut):
-        assert "Hörsaal" in pi.extract_pages_markdown(umlaut, [0]).pages[0].markdown, \
-            "Umlaut-Encoding kaputt"
 
-    from tempfile import TemporaryDirectory
     from PIL import Image, ImageDraw
     with TemporaryDirectory() as tmp:
         scan = f"{tmp}/scan.pdf"
@@ -262,7 +278,7 @@ def _selftest():
         assert recovered and "OCR erkennt Text 123" in output, \
             (recovered, errors, output)
     print(f"selftest ok - {len(topic_blocks(titles, len(titles)))} Themen aus "
-          f"{len(titles)} Seiten, OCR-Fallback ok")
+          f"{len(titles)} Seiten, Umlaute ok, OCR-Fallback ok")
 
 
 if __name__ == "__main__":
