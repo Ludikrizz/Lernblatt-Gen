@@ -9,8 +9,8 @@ ZIP steht als "relpath" im Manifest und hilft beim Einsortieren (Ordnernamen in
 der ZIP sind oft schon Kategorie-Hinweise).
 
 Beispiel:
-  .\ingest_zip.ps1 -ZipPath "C:\Users\...\Downloads\Kurs_Material.zip" -OutDir "<scratchpad>\staging"
-  .\ingest_zip.ps1 -ZipPath "C:\Users\...\Downloads" -OutDir "<scratchpad>\staging"   # alle *.zip im Ordner
+  .\ingest_zip.ps1 -ZipPath "C:\Users\...\Downloads\Kurs_Material.zip" -OutDir "scratch\staging"
+  .\ingest_zip.ps1 -ZipPath "C:\Users\...\Downloads" -OutDir "scratch\staging"   # alle *.zip im Ordner
 #>
 param(
   [Parameter(Mandatory)][string[]]$ZipPath,
