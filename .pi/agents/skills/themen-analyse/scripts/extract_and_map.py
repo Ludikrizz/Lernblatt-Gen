@@ -16,6 +16,7 @@ Seite ist die finale Animations-Bau-Stufe.
 """
 import io
 import os
+import re
 import sys
 
 import pdf_inspector as pi
@@ -27,6 +28,15 @@ from pfade import cache, prefix_fuer_datei, quellen
 SIZE_TOL = 0.6    # pt Toleranz, damit mehrzeilige Titel zusammenbleiben
 GAP = 2.2         # Zeilenabstand > GAP * Schriftgroesse => nicht mehr Titel
 OCR_VISUAL_WORDS = 30  # wenig Text + grosse Grafik => OCR-Fallback pruefen
+# PyMuPDF4LLM markiert OCR aus Fotos, Karten und Screenshots als Bildtext. Der
+# ist meist Rauschen ("SI Bi 5 Yt Jh") und darf den Seitenvergleich nicht gewinnen.
+BILDTEXT = re.compile(r"<!-- Start of picture text -->.*?<!-- End of picture text -->",
+                      re.S)
+
+
+def _fliesstext_woerter(md):
+    """Wortzahl ohne OCR-Bildtext. Massstab fuer Erstpass gegen OCR-Fallback."""
+    return len(BILDTEXT.sub(" ", md or "").split())
 
 
 def page_titles(pdf):
@@ -163,7 +173,7 @@ def write_markdown(pdf, dest):
     for page in res.pages:
         fast = (page.markdown or "").strip()
         fallback = ocr.get(page.page, "")
-        if len(fallback.split()) > len(fast.split()):
+        if _fliesstext_woerter(fallback) > _fliesstext_woerter(fast):
             fast = fallback
             recovered.add(page.page)
         parts.append(f"<!-- Seite {page.page + 1} -->\n{fast}\n")

@@ -1,13 +1,13 @@
 # Text-Erstpass und Folientitel (Rust-Parser, https://github.com/firecrawl/pdf-inspector)
-pdf-inspector==0.2.6
+pdf-inspector==1.26.0
 
 # PDF-Markierungen, Geometrie, Crops, Rendering
-pymupdf==1.28.2
+pymupdf==2.1
 
 # OCR-Fallback fuer Scans und Grafikseiten (ruft Tesseract oder RapidOCR auf)
-pymupdf4llm==1.28.2
-rapidocr==3.9.2
-onnxruntime==1.28.0
+pymupdf4llm==2.1
+rapidocr==3.10.0
+onnxruntime==1.32.0
 
 # Selbsttest des OCR-Fallbacks
-pillow==12.3.0
+pillow==13.0.0

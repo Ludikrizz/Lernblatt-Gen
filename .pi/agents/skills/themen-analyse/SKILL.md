@@ -134,7 +134,7 @@ der Quellenlage fest: welche Decks da sind (`01`–`07` von vermutlich 14), ob
 ### 2. Text lokal extrahieren + Folien-Titel mappen
 Installiere die lokalen Parser einmal und starte dann den Lauf:
 ```bash
-python -m pip install -U pdf-inspector pymupdf4llm==1.28.2
+python -m pip install -r requirements.txt
 winget install --id UB-Mannheim.TesseractOCR -e
 python .claude/skills/themen-analyse/scripts/extract_and_map.py "<Fach>"
 ```

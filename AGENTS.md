@@ -27,7 +27,7 @@ _derived/<Fach>/
 .pi/agents/               Laufzeitspiegelung der Projekt-Agenten
 Scratchpad/               temporäre Skripte und Renderprüfungen
 docs/                     Design-, Inhalts- und Prozessdokumentation
-tools/pdf-inspector/      Quelltext-Referenz des Parsers (installiert wird das PyPI-Paket)
+tools/pdf-inspector/      Quelltext-Referenz des Parsers, v1.26.0 (installiert wird das PyPI-Paket)
 ```
 
 `Examples/<Fach>/` ist die bevorzugte Struktur für sortierte Quellen. Während ein
@@ -91,6 +91,9 @@ python -m py_compile "_derived/<Fach>/build/build_lernblatt.py" "_derived/<Fach>
 python .claude/skills/lernblatt-generator/scripts/lernblatt_html.py --selftest
 python .claude/skills/lernblatt-generator/scripts/slides.py --selftest
 python .claude/skills/lernblatt-generator/scripts/check_crops.py --selftest
+python .claude/skills/themen-analyse/scripts/extract_and_map.py --selftest
+python .claude/skills/themen-analyse/scripts/annots.py --selftest
+python .claude/skills/themen-analyse/scripts/graph.py --selftest
 python .claude/skills/lernblatt-generator/scripts/check_crops.py "Vorlesungen/<Fach>/Lernblaetter/bilder"
 ```
 

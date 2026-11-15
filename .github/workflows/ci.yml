@@ -81,3 +81,5 @@ jobs:
           python $s/lernblatt-generator/scripts/slides.py --selftest
           python $s/lernblatt-generator/scripts/check_crops.py --selftest
           python $s/themen-analyse/scripts/extract_and_map.py --selftest
+          python $s/themen-analyse/scripts/annots.py --selftest
+          python $s/themen-analyse/scripts/graph.py --selftest
