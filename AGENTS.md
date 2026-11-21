@@ -24,7 +24,6 @@ docs/                     Design-, Inhalts- und Prozessdokumentation
 .claude/skills/           Projekt-Skills (Anleitungen für Agenten)
 .claude/agents/           Projekt-Agenten, gespiegelt nach .pi/agents/
 scratch/                  temporäre Skripte und Renderprüfungen, nicht im Git
-tools/pdf-inspector/      Quelltext-Referenz des Parsers, v1.26.0 (installiert wird das PyPI-Paket)
 ```
 
 Die Pfadlogik steht nur in `src/lernblatt/paths.py`. Liegen unter
