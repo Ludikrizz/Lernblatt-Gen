@@ -6,7 +6,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     # Text-Erstpass und Folientitel (Rust-Parser, https://github.com/firecrawl/pdf-inspector)
-    "pdf-inspector==1.26.0",
+    "pdf-inspector==1.26.1",
     # PDF-Markierungen, Geometrie, Crops, Rendering
     "pymupdf==2.1",
     # OCR-Fallback für Scans und Grafikseiten (ruft Tesseract oder RapidOCR auf)
@@ -28,7 +28,7 @@ build-backend = "uv_build"
 module-name = "lernblatt"
 
 [dependency-groups]
-dev = ["ruff==0.17.5", "pytest==9.2.0"]
+dev = ["ruff==0.17.6", "pytest==9.2.0"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
